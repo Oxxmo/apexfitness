@@ -85,13 +85,13 @@ body{display:flex;flex-direction:column}
 .icon-btn:hover{opacity:1;background:var(--bg-ele)}
 .icon-btn svg{stroke:var(--text);display:block}
 
-#main-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 52px)}
-.tab-pane{display:none;padding:18px;animation:fadeUp .2s ease}
+#main-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.tab-pane{display:none;padding:18px 18px 24px;animation:fadeUp .2s ease}
 .tab-pane.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── NAV ── */
-#bottom-nav{height:var(--nav-h);display:flex;align-items:stretch;background:var(--bg-card);border-top:1px solid var(--border);position:fixed;bottom:0;left:0;right:0;z-index:50;padding-bottom:env(safe-area-inset-bottom);flex-shrink:0}
+#bottom-nav{height:var(--nav-h);display:flex;align-items:stretch;background:var(--bg-card);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);z-index:50;}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.57rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;transition:.2s}
 .nav-item svg{width:20px;height:20px;stroke-width:1.8;stroke:currentColor;fill:none;transition:.2s}
 .nav-item.active{color:var(--accent)}.nav-item.active svg{stroke:var(--accent)}
@@ -310,37 +310,51 @@ textarea{resize:none}
     </div>
 
     <div class="ob-step" id="obs2">
-      <div class="ob-title">Ton <span style="color:var(--accent);">Morphotype</span></div>
-      <div class="ob-sub">Ton morphotype influence ton métabolisme, ta réponse à l'entraînement et ta nutrition idéale.</div>
+      <div class="ob-title">Ton <span style="color:var(--accent);">Corps Naturel</span></div>
+      <div class="ob-sub">Sans entraînement et sans faire attention à ce que tu manges, tu ressembles plutôt à…</div>
       <div class="morph-grid" id="morph-grid">
         <div class="mopt" data-m="ectomorphe" onclick="selMorph(this)">
           <div class="mi">🦴</div>
-          <div class="ml">Ecto</div>
-          <div class="ms">Mince naturellement, métabolisme rapide</div>
+          <div class="ml">Naturellement mince</div>
+          <div class="ms">Tu as du mal à prendre du poids, même en mangeant beaucoup</div>
         </div>
         <div class="mopt sel" data-m="mésomorphe" onclick="selMorph(this)">
-          <div class="mi">💪</div>
-          <div class="ml">Méso</div>
-          <div class="ms">Athlétique naturellement, répond bien</div>
+          <div class="mi">⚖️</div>
+          <div class="ml">Entre les deux</div>
+          <div class="ms">Tu prends du poids si tu fais des excès, mais tu perds facilement aussi</div>
         </div>
         <div class="mopt" data-m="endomorphe" onclick="selMorph(this)">
           <div class="mi">🔥</div>
-          <div class="ml">Endo</div>
-          <div class="ms">Tend à stocker, métab. plus lent</div>
+          <div class="ml">Tendance à grossir</div>
+          <div class="ms">Tu stockes facilement les graisses, tu perds du poids moins vite</div>
         </div>
       </div>
-      <div id="morph-hint" style="font-size:.78rem;color:var(--muted);background:var(--bg-ele);padding:11px;border-radius:var(--r-sm);margin-top:10px;line-height:1.5;border-left:2px solid var(--accent2);">💪 Athlétique naturellement — tu réponds bien à l'entraînement et prends du muscle plus facilement.</div>
+      <div id="morph-hint" style="font-size:.78rem;color:var(--muted);background:var(--bg-ele);padding:12px;border-radius:var(--r-sm);margin-top:12px;line-height:1.6;border-left:2px solid var(--accent2);">⚖️ Tu prends du poids si tu fais des excès, mais tu le reperdres facilement aussi. Tu répondras bien à l'entraînement — c'est le profil le plus courant.</div>
+      <div style="margin-top:10px;font-size:.73rem;color:var(--muted);text-align:center;">Pas sûr(e) ? Choisis <strong style="color:var(--text);">Entre les deux</strong> — c'est le plus fréquent.</div>
     </div>
 
     <div class="ob-step" id="obs3">
       <div class="ob-title">Ton <span style="color:var(--accent);">Objectif</span></div>
-      <div class="ob-sub">L'IA adaptera le programme, les intensités et la nutrition à ton but précis.</div>
+      <div class="ob-sub">Qu'est-ce que tu veux obtenir concrètement ? Sois honnête avec toi-même.</div>
       <div class="goal-grid">
-        <div class="gopt sel" data-g="recomposition" onclick="selGoal(this)"><div class="gi">⚡</div><div class="gl">Recompo corpo</div></div>
-        <div class="gopt" data-g="prise_masse" onclick="selGoal(this)"><div class="gi">💪</div><div class="gl">Prise de masse</div></div>
-        <div class="gopt" data-g="seche" onclick="selGoal(this)"><div class="gi">🔥</div><div class="gl">Sèche / perte gras</div></div>
-        <div class="gopt" data-g="force" onclick="selGoal(this)"><div class="gi">🏋️</div><div class="gl">Force & perf</div></div>
+        <div class="gopt sel" data-g="recomposition" onclick="selGoal(this)">
+          <div class="gi">⚡</div>
+          <div class="gl">Être plus sec<br>ET musclé</div>
+        </div>
+        <div class="gopt" data-g="prise_masse" onclick="selGoal(this)">
+          <div class="gi">💪</div>
+          <div class="gl">Prendre du<br>volume musculaire</div>
+        </div>
+        <div class="gopt" data-g="seche" onclick="selGoal(this)">
+          <div class="gi">🔥</div>
+          <div class="gl">Perdre du gras,<br>révéler ma silhouette</div>
+        </div>
+        <div class="gopt" data-g="force" onclick="selGoal(this)">
+          <div class="gi">🏋️</div>
+          <div class="gl">Devenir<br>plus fort(e)</div>
+        </div>
       </div>
+      <div id="goal-hint" style="font-size:.78rem;color:var(--muted);background:var(--bg-ele);padding:12px;border-radius:var(--r-sm);margin-top:12px;line-height:1.6;border-left:2px solid var(--accent);">⚡ <strong style="color:var(--text);">Être plus sec ET musclé simultanément</strong> — c'est l'objectif idéal pour quelqu'un qui débute. Tu vas perdre du gras et prendre du muscle en même temps. Résultat : une silhouette plus définie, plus athlétique, sans régime drastique.</div>
     </div>
 
     <div class="ob-step" id="obs4">
@@ -694,16 +708,26 @@ async function loginOrCreate(){
 }
 
 const MORPH_HINTS = {
-  ectomorphe:'🦴 Métabolisme rapide, naturellement mince — tu as besoin de plus de calories et de glucides pour prendre de la masse.',
-  mésomorphe:'💪 Athlétique naturellement — tu réponds bien à l\'entraînement et prends du muscle plus facilement.',
-  endomorphe:'🔥 Tendance à stocker les graisses — focus sur le déficit modéré, hautes protéines et cardio pour la recompo.'
+  ectomorphe:'🦴 Tu es naturellement mince et tu as du mal à prendre du poids. On va augmenter tes calories et privilégier les glucides pour t\'aider à construire du muscle. C\'est un avantage pour la sèche !',
+  mésomorphe:'⚖️ Tu prends du poids si tu fais des excès, mais tu le reperdres facilement aussi. Tu répondras bien à l\'entraînement — c\'est le profil le plus courant et le plus polyvalent.',
+  endomorphe:'🔥 Tu stockes les graisses plus facilement que la moyenne. On va travailler avec un léger déficit calorique, beaucoup de protéines, et varier les intensités pour brûler efficacement tout en prenant du muscle.'
 };
 
 function selMorph(el){
   document.querySelectorAll('.mopt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel');
   OB.morphotype = el.dataset.m; $('morph-hint').textContent = MORPH_HINTS[el.dataset.m]||'';
 }
-function selGoal(el){ document.querySelectorAll('.gopt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); OB.goal=el.dataset.g; }
+const GOAL_HINTS = {
+  recomposition: '⚡ <strong style="color:var(--text);">Perdre du gras ET prendre du muscle en même temps</strong> — c\'est possible quand on débute. Résultat en 3-4 mois : silhouette plus définie, plus athlétique, sans régime drastique. C\'est l\'objectif recommandé pour toi.',
+  prise_masse: '💪 <strong style="color:var(--text);">Grossir les muscles volontairement</strong> — tu vas manger un peu plus que ta dépense pour "nourrir" la croissance musculaire. Tu prendras aussi un peu de gras, c\'est normal et temporaire.',
+  seche: '🔥 <strong style="color:var(--text);">Perdre du gras en préservant tes muscles</strong> — on réduit légèrement les calories, on monte les protéines, et l\'entraînement fait le reste. Tu vas révéler la silhouette déjà là sous la surface.',
+  force: '🏋️ <strong style="color:var(--text);">Soulever plus lourd, être plus performant</strong> — l\'objectif est de progresser sur les charges semaine après semaine. La silhouette s\'améliore en bonus.'
+};
+
+function selGoal(el){
+  document.querySelectorAll('.gopt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); OB.goal=el.dataset.g;
+  const hint = $('goal-hint'); if(hint) hint.innerHTML = GOAL_HINTS[el.dataset.g]||'';
+}
 function selSess(el){ document.querySelectorAll('.sopt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); OB.sessions_per_week=parseInt(el.dataset.n); }
 
 async function obNext(){
