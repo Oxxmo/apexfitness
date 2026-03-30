@@ -160,7 +160,7 @@ JSON exact :
       requestBody = {
         model: MODELS.fast,
         max_tokens: 400,
-        system: 'Nutritionniste expert. Réponds UNIQUEMENT avec 4-5 bullet points courts, chacun sur une ligne, commençant par un emoji pertinent. Pas de titre, pas de paragraphe, pas d\'intro.',
+        system: 'Nutritionniste expert. Réponds avec 4-5 conseils courts, chacun sur une ligne séparée, commençant par un emoji. Format : "🔥 Conseil court et actionnable." Pas de titres, pas de ##, pas de **, pas de numéros. Une ligne = un conseil.',
         messages: [{
           role: 'user',
           content: `Profil : ${userCtx} BMR ${td.bmr} kcal · TDEE ${td.tdee} kcal · Cible ${td.target} kcal · P${td.protein_g}g G${td.carbs_g}g L${td.fats_g}g · Morphotype ${td.morphotype}. Donne 4-5 conseils pratiques adaptés à ce profil.`
@@ -174,7 +174,7 @@ JSON exact :
       requestBody = {
         model: MODELS.fast,
         max_tokens: 150,
-        system: `Coach sportif expert. ${userCtx} Français, tutoie. Réponds avec 1 seul conseil court (2 phrases max) commençant par un emoji pertinent. Direct et actionnable.`,
+        system: `Coach sportif expert. ${userCtx} Français, tutoie. 1 conseil de 2 phrases max. Commence par un emoji. Pas de markdown, pas de **, pas de ##. Direct et actionnable.`,
         messages: [{ role:'user', content: `Conseil du jour sur : ${topic}` }]
       };
 
@@ -183,7 +183,7 @@ JSON exact :
       requestBody = {
         model: MODELS.fast,
         max_tokens: 500,
-        system: `Tu es APEX, coach sportif et nutritionniste. ${userCtx} Français, direct, tutoie, 3-5 phrases max.`,
+        system: `Tu es APEX, coach sportif et nutritionniste. ${userCtx} Français, direct, tutoie, 3-5 phrases max. Pas de markdown, pas de **, pas de ##. Réponds comme un ami expert, pas comme un document.`,
         messages: (messages||[]).slice(-14)
       };
     }
