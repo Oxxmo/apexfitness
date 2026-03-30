@@ -661,19 +661,35 @@ textarea{resize:none}
 
 <script>
 // ══════════════════════════════════════════════
+// FILET DE SÉCURITÉ GLOBAL
+// Lance dès le début — indépendant de tout le reste
+// ══════════════════════════════════════════════
+setTimeout(() => {
+  const boot = document.getElementById('boot');
+  const auth = document.getElementById('auth-screen');
+  if (boot && !boot.classList.contains('hide')) {
+    boot.classList.add('hide');
+    if (auth) auth.classList.remove('hidden');
+  }
+}, 7000);
+
+// ══════════════════════════════════════════════
 // CONFIG — À remplacer
 // ══════════════════════════════════════════════
-const SB_URL  = 'VOTRE_SUPABASE_URL';
-const SB_KEY  = 'VOTRE_SUPABASE_ANON_KEY';
+const SB_URL  = 'https://hanhdepitbfztfgwooyb.supabase.co';
+const SB_KEY  = 'sb_publishable_LV7Q2iqHWCKwHv69T1k7VA_Nztc1C7m';
 const API_URL = '/api/ai-proxy';
 
 // ══════════════════════════════════════════════
 // GLOBALS
 // ══════════════════════════════════════════════
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
+let sb;
+try { sb = window.supabase.createClient(SB_URL, SB_KEY); }
+catch(e) { console.error('Supabase init error:', e); }
+
 let USER = null, PROG = null, ACT_SESS = null, CHAT = [];
 let OB_STEP = 1, OB = { goal:'recomposition', morphotype:'mésomorphe', sessions_per_week:4 };
-let ACT_MULT = 1.55; // selected activity multiplier
+let ACT_MULT = 1.55;
 let _confirmFn = null;
 
 // ══════════════════════════════════════════════
@@ -1466,12 +1482,11 @@ function goTab(name,btn){
 // INIT
 // ══════════════════════════════════════════════
 async function init(){
-  // Filet de sécurité — cache le loader après 6s quoi qu'il arrive
-  const safetyTimer = setTimeout(() => {
+  if (!sb) {
     $('boot').classList.add('hide');
     $('auth-screen').classList.remove('hidden');
-  }, 6000);
-
+    return;
+  }
   try {
     const p = localStorage.getItem('apex_p');
     if (p) {
@@ -1479,18 +1494,14 @@ async function init(){
       if (data && !error) {
         USER = data;
         await boot();
-        clearTimeout(safetyTimer);
         $('boot').classList.add('hide');
         return;
       }
-      // Pseudo en cache mais introuvable → reset
       localStorage.removeItem('apex_p');
     }
   } catch(e) {
     console.error('APEX init error:', e);
   }
-
-  clearTimeout(safetyTimer);
   $('boot').classList.add('hide');
   $('auth-screen').classList.remove('hidden');
 }
