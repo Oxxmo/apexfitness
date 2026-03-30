@@ -85,7 +85,7 @@ body{display:flex;flex-direction:column}
 .icon-btn:hover{opacity:1;background:var(--bg-ele)}
 .icon-btn svg{stroke:var(--text);display:block}
 
-#main-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h)+16px)}
+#main-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 52px)}
 .tab-pane{display:none;padding:18px;animation:fadeUp .2s ease}
 .tab-pane.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -804,7 +804,10 @@ function calcStreak(){ return parseInt(localStorage.getItem(`apex_str_${USER?.id
 
 async function loadTip(){
   $('tip-sp').style.display='inline-block';
-  try{ const r=await api({type:'tip'}); const t=aiTxt(r); if(t)$('ai-tip').textContent=t; }catch{}
+  try{
+    const r=await api({type:'tip'}); const t=aiTxt(r);
+    if(t) $('ai-tip').innerHTML = `<span style="font-size:1rem;margin-right:6px;">${t.match(/^[\p{Emoji}]/u)?'':''}</span>${t.replace(/^[\p{Emoji}\s]+/u,'').trim()}`;
+  }catch{}
   $('tip-sp').style.display='none';
 }
 
@@ -983,10 +986,10 @@ async function calcTDEE(){
 
     <div class="card ca" id="tdee-ai-advice" style="margin-bottom:10px;">
       <span class="lbl">💡 Conseils IA personnalisés</span>
-      <div id="tdee-ai-txt" style="font-size:.82rem;line-height:1.55;color:var(--muted);">Chargement…</div>
+      <div id="tdee-ai-txt" style="font-size:.82rem;line-height:1.6;color:var(--muted);margin-top:4px;">Chargement…</div>
     </div>
 
-    <button class="btn bp bfull" onclick="applyTDEEtoDiet(${target},${prot},${carbs},${fat})">
+    <button class="btn bp bfull" style="margin-bottom:8px;" onclick="applyTDEEtoDiet(${target},${prot},${carbs},${fat})">
       ✅ Appliquer à ma diète
     </button>
   `;
@@ -994,7 +997,15 @@ async function calcTDEE(){
 
   // Load AI advice async
   api({type:'tdee_advice', tdeeData:td}).then(r=>{
-    const t=aiTxt(r); if(t)$('tdee-ai-txt').textContent=t;
+    const t = aiTxt(r);
+    if (t) {
+      const lines = t.trim().split('\n').filter(l => l.trim());
+      $('tdee-ai-txt').innerHTML = lines.map(l =>
+        `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;"><span style="flex-shrink:0;font-size:1rem;line-height:1.3;">${l.match(/^\p{Emoji}/u)?'':''}</span><span style="font-size:.82rem;line-height:1.5;">${l.replace(/^[\p{Emoji}\s]+/u,'').trim()}</span></div>`
+      ).join('');
+      // fallback if no emojis found - just show plain
+      if (!t.match(/[\u{1F300}-\u{1FFFF}]/u)) $('tdee-ai-txt').textContent = t;
+    }
   }).catch(()=>{ $('tdee-ai-txt').textContent='Paramétrise ton programme pour des conseils personnalisés.'; });
 }
 
