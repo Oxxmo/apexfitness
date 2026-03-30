@@ -45,50 +45,16 @@ export default async function handler(req, res) {
       };
       requestBody = {
         model: MODELS.fast,
-        max_tokens: 3800,
-        system: `Tu es coach sportif expert en hypertrophie et recomposition. ${userCtx}
-Règles :
-- Débutant (<6 mois) : technique prioritaire, charges modérées, RPE 7-8
-- 1 exercice mobilité/gainage par séance en fin
-- Varier les types de reps selon exercice et objectif
-- Réponds UNIQUEMENT en JSON valide, sans markdown.`,
+        max_tokens: 4000,
+        system: `Coach sportif expert. ${userCtx} Débutant : technique prioritaire, RPE 7-8. JSON uniquement, sans markdown, sans texte autour.`,
         messages: [{
           role: 'user',
-          content: `Génère ${n} séances/semaine. Split : ${splits[n]||splits[3]}.
+          content: `${n} séances/semaine. Split : ${splits[n]||splits[3]}.
+Rep types : standard|echec|tempo|pause|dropset|isometrique.
+6-7 exercices par séance max. Tips ultra-courts (6 mots max). weekly_note = 1 phrase.
 
-Types de reps disponibles :
-- "standard" : mouvement contrôlé 2s/2s
-- "echec" : jusqu'à défaillance technique (dernière série)
-- "tempo" : excentrique 4s, pause 1s, concentrique 2s (-20% charge)
-- "pause" : pause 2s en position étirée (-15% charge)
-- "dropset" : après l'échec, -30% charge et continuer sans repos (dernier set)
-- "isometrique" : contraction statique maintenue (planches etc.)
-
-JSON exact :
-{
-  "split_name": "Nom court",
-  "weekly_note": "Note motivante 2 phrases",
-  "sessions": [
-    {
-      "name": "Séance A — Push",
-      "focus": "Pectoraux, épaules, triceps",
-      "duration_min": 55,
-      "exercises": [
-        {
-          "name": "Développé couché haltères",
-          "muscles": ["Pectoraux","Triceps"],
-          "category": "compound",
-          "sets": 4,
-          "reps": "8-10",
-          "rep_type": "standard",
-          "rep_type_note": "Dernier set à l'échec si forme parfaite",
-          "rest_seconds": 90,
-          "tip": "Conseil technique court"
-        }
-      ]
-    }
-  ]
-}`
+JSON (strictement ce format, rien d'autre) :
+{"split_name":"","weekly_note":"","sessions":[{"name":"","focus":"","duration_min":55,"exercises":[{"name":"","muscles":[],"sets":3,"reps":"10-12","rep_type":"standard","rest_seconds":90,"tip":""}]}]}`
         }]
       };
 
@@ -189,22 +155,15 @@ JSON exact :
         }]
       };
 
-    // ── TDEE ADVICE ──────────────────────────────────────────
     } else if (type === 'tdee_advice') {
       const td = tdeeData || {};
       requestBody = {
         model: MODELS.fast,
-        max_tokens: 600,
-        system: 'Nutritionniste expert composition corporelle. Conseils pratiques, directs. Français, tutoie.',
+        max_tokens: 400,
+        system: 'Nutritionniste expert. Réponds UNIQUEMENT avec 4-5 bullet points courts, chacun sur une ligne, commençant par un emoji pertinent. Pas de titre, pas de paragraphe, pas d\'intro.',
         messages: [{
           role: 'user',
-          content: `Profil : ${userCtx}
-Résultats calculés :
-- BMR : ${td.bmr} kcal | TDEE : ${td.tdee} kcal | Cible : ${td.target} kcal
-- Macros : P ${td.protein_g}g / G ${td.carbs_g}g / L ${td.fats_g}g
-- Morphotype : ${td.morphotype}
-
-Donne 3-4 conseils personnalisés pratiques basés sur ces chiffres et ce morphotype. Concret et actionnable.`
+          content: `Profil : ${userCtx} BMR ${td.bmr} kcal · TDEE ${td.tdee} kcal · Cible ${td.target} kcal · P${td.protein_g}g G${td.carbs_g}g L${td.fats_g}g · Morphotype ${td.morphotype}. Donne 4-5 conseils pratiques adaptés à ce profil.`
         }]
       };
 
@@ -214,9 +173,9 @@ Donne 3-4 conseils personnalisés pratiques basés sur ces chiffres et ce morpho
       const topic = topics[Math.floor(Math.random()*topics.length)];
       requestBody = {
         model: MODELS.fast,
-        max_tokens: 200,
-        system: `Coach expert, direct, motivant. ${userCtx} Français, tutoie, 2-3 phrases.`,
-        messages: [{ role:'user', content: `Conseil percutant du jour sur : ${topic}` }]
+        max_tokens: 150,
+        system: `Coach sportif expert. ${userCtx} Français, tutoie. Réponds avec 1 seul conseil court (2 phrases max) commençant par un emoji pertinent. Direct et actionnable.`,
+        messages: [{ role:'user', content: `Conseil du jour sur : ${topic}` }]
       };
 
     // ── CHAT ─────────────────────────────────────────────────
