@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       };
       requestBody = {
         model: MODELS.fast,
-        max_tokens: 2800,
+        max_tokens: 3800,
         system: `Tu es coach sportif expert en hypertrophie et recomposition. ${userCtx}
 Règles :
 - Débutant (<6 mois) : technique prioritaire, charges modérées, RPE 7-8
@@ -157,6 +157,35 @@ JSON exact :
   "suggestions": "1 amélioration simple"
 }` }
           ]
+        }]
+      };
+
+    // ── ALT EXERCISE ─────────────────────────────────────────
+    } else if (type === 'alt_exercise') {
+      requestBody = {
+        model: MODELS.fast,
+        max_tokens: 500,
+        system: 'Coach sportif expert. Exercices Basic-Fit uniquement. JSON uniquement, sans markdown.',
+        messages: [{
+          role: 'user',
+          content: `Propose 3 alternatives à "${u.exercise_name}" ciblant les mêmes muscles : ${u.muscles?.join(', ')}.
+Critères : accessibles à un débutant, faisables à Basic-Fit, même groupe musculaire.
+
+JSON exact :
+{
+  "alternatives": [
+    {
+      "name": "Nom de l'exercice",
+      "muscles": ["muscle1","muscle2"],
+      "sets": 3,
+      "reps": "10-12",
+      "rest_seconds": 90,
+      "rep_type": "standard",
+      "tip": "Conseil technique court",
+      "why": "Pourquoi c'est plus accessible"
+    }
+  ]
+}`
         }]
       };
 
