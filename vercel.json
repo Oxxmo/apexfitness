@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/ai-proxy.js": {
-      "maxDuration": 45
-    }
-  }
-}
