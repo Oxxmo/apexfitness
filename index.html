@@ -261,7 +261,16 @@ textarea{resize:none}
 .t-ex{font-size:.76rem;color:var(--muted);margin-bottom:18px}
 .t-btns{display:flex;gap:10px;justify-content:center}
 
-/* ── PERF ── */
+/* ── ALT EXERCISE MODAL ── */
+.alt-card{background:var(--bg-ele);border:1px solid var(--border2);border-radius:var(--r-sm);padding:14px;margin-bottom:10px;cursor:pointer;transition:.2s}
+.alt-card:hover{border-color:var(--accent);background:var(--accent-d)}
+.alt-card.sel{border-color:var(--accent);background:var(--accent-d)}
+.alt-name{font-weight:700;font-size:.9rem;margin-bottom:3px}
+.alt-why{font-size:.73rem;color:var(--accent2);margin-bottom:6px;font-style:italic}
+.alt-tip{font-size:.75rem;color:var(--muted);line-height:1.45}
+.alt-meta{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.swap-btn{background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:.7rem;color:var(--muted);transition:.2s;display:inline-flex;align-items:center;gap:3px}
+.swap-btn:hover{border-color:var(--accent);color:var(--accent)}
 .perf-item{display:flex;align-items:center;gap:10px;padding:11px;background:var(--bg-ele);border-radius:var(--r-sm)}
 .perf-icon{width:38px;height:38px;border-radius:10px;background:var(--accent-d);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
 </style>
@@ -596,6 +605,23 @@ textarea{resize:none}
   </div>
 </div>
 
+<!-- ══ ALT EXERCISE MODAL ════════════════════════════════ -->
+<div class="modal-overlay hidden" id="alt-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔄 Alternatives</div>
+    <div style="color:var(--muted);font-size:.8rem;margin-bottom:4px;" id="alt-replacing"></div>
+    <div style="color:var(--muted2);font-size:.72rem;margin-bottom:16px;">Même groupe musculaire · Basic-Fit</div>
+    <div id="alt-loading" class="loading" style="display:none;padding:24px;"><div class="spinner"></div><p>Recherche d'alternatives…</p></div>
+    <div id="alt-list"></div>
+    <div id="alt-footer" style="display:none;">
+      <button class="btn bp bfull" id="alt-confirm-btn" onclick="confirmAlt()">Remplacer l'exercice →</button>
+      <button class="btn bg bfull" style="margin-top:8px;" onclick="closeAlt()">Annuler</button>
+    </div>
+    <button class="btn bg bfull" id="alt-close-btn" onclick="closeAlt()">Fermer</button>
+  </div>
+</div>
+
 <!-- ══ TIMER ══════════════════════════════════════ -->
 <div id="timer-modal">
   <div class="t-inner">
@@ -623,8 +649,8 @@ textarea{resize:none}
 // ══════════════════════════════════════════════
 // CONFIG — À remplacer
 // ══════════════════════════════════════════════
-const SB_URL  = 'https://hanhdepitbfztfgwooyb.supabase.co';
-const SB_KEY  = 'sb_publishable_LV7Q2iqHWCKwHv69T1k7VA_Nztc1C7m';
+const SB_URL  = 'VOTRE_SUPABASE_URL';
+const SB_KEY  = 'VOTRE_SUPABASE_ANON_KEY';
 const API_URL = '/api/ai-proxy';
 
 // ══════════════════════════════════════════════
@@ -1030,6 +1056,7 @@ function renderExCard(ex,ei,si){
           <div class="ex-meta">${ex.sets} séries × ${ex.reps} · repos ${ex.rest_seconds}s</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <button class="swap-btn" onclick="event.stopPropagation();openAlt(${si},${ei})">🔄 Alt.</button>
           <span class="rep-badge ${rt.cls}">${rt.label}</span>
           ${allDone?'<span class="chip cgr" style="font-size:.58rem;">✓</span>':''}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1284,6 +1311,82 @@ async function deleteAccount(){
   $('auth-screen').classList.remove('hidden'); $('pseudo-in').value='';
   toast('Compte supprimé');
 }
+
+// ══════════════════════════════════════════════
+// ALT EXERCISE
+// ══════════════════════════════════════════════
+let ALT = { si:null, ei:null, selected:null, data:[] };
+
+async function openAlt(si, ei) {
+  const ex = PROG.sessions_data[si].exercises[ei];
+  ALT = { si, ei, selected:null, data:[] };
+  $('alt-replacing').textContent = `Remplacer : ${ex.name}`;
+  $('alt-list').innerHTML = '';
+  $('alt-footer').style.display = 'none';
+  $('alt-close-btn').style.display = 'block';
+  $('alt-loading').style.display = 'flex';
+  $('alt-modal').classList.remove('hidden');
+
+  try {
+    const r = await api({
+      type: 'alt_exercise',
+      user: { ...(USER||{}), exercise_name: ex.name, muscles: ex.muscles }
+    });
+    const data = parseJ(aiTxt(r));
+    $('alt-loading').style.display = 'none';
+
+    if (!data?.alternatives?.length) { $('alt-list').innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px;">Aucune alternative trouvée, réessaie.</div>'; return; }
+
+    ALT.data = data.alternatives;
+    const rt_map = { standard:'rt-standard', echec:'rt-echec', tempo:'rt-tempo', pause:'rt-pause', dropset:'rt-dropset', isometrique:'rt-isometrique' };
+
+    $('alt-list').innerHTML = data.alternatives.map((a, i) => `
+      <div class="alt-card" id="alt-${i}" onclick="selAlt(${i})">
+        <div class="alt-name">${a.name}</div>
+        <div class="alt-why">✓ ${a.why}</div>
+        <div class="alt-meta">
+          <span class="chip cbl" style="font-size:.56rem;">${a.muscles?.join(', ')}</span>
+          <span class="rep-badge ${rt_map[a.rep_type||'standard']||'rt-standard'}" style="font-size:.55rem;">${(RT[a.rep_type||'standard']||RT.standard).label}</span>
+          <span class="chip cmu" style="font-size:.56rem;">${a.sets}×${a.reps} · ${a.rest_seconds}s</span>
+        </div>
+        <div class="alt-tip">💡 ${a.tip}</div>
+      </div>`).join('');
+
+    $('alt-footer').style.display = 'block';
+    $('alt-close-btn').style.display = 'none';
+    $('alt-confirm-btn').disabled = true;
+  } catch(e) {
+    $('alt-loading').style.display = 'none';
+    $('alt-list').innerHTML = '<div style="color:var(--danger);font-size:.82rem;text-align:center;padding:20px;">Erreur, réessaie.</div>';
+  }
+}
+
+function selAlt(i) {
+  document.querySelectorAll('.alt-card').forEach((c,idx) => c.classList.toggle('sel', idx===i));
+  ALT.selected = i;
+  $('alt-confirm-btn').disabled = false;
+}
+
+async function confirmAlt() {
+  if (ALT.selected === null || !PROG) return;
+  const newEx = ALT.data[ALT.selected];
+  const si = ALT.si, ei = ALT.ei;
+  const old = PROG.sessions_data[si].exercises[ei];
+
+  // Replace exercise, keep sets_data structure
+  PROG.sessions_data[si].exercises[ei] = {
+    ...newEx,
+    sets_data: Array.from({ length: newEx.sets }, () => ({ weight:'', reps:'', done:false })),
+    completed: false
+  };
+
+  await sb.from('programs').update({ sessions_data: PROG.sessions_data }).eq('id', PROG.id);
+  closeAlt();
+  renderSessPane();
+  toast(`✅ ${old.name} → ${newEx.name}`);
+}
+
+function closeAlt() { $('alt-modal').classList.add('hidden'); ALT={ si:null, ei:null, selected:null, data:[] }; }
 
 // ══════════════════════════════════════════════
 // TIMER
