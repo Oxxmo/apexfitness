@@ -44,8 +44,8 @@ export default async function handler(req, res) {
         6:'PPL ×2 (Push A/Pull A/Legs A + Push B/Pull B/Legs B)'
       };
       requestBody = {
-        model: MODELS.quality,
-        max_tokens: 4000,
+        model: MODELS.fast,
+        max_tokens: 2800,
         system: `Tu es coach sportif expert en hypertrophie et recomposition. ${userCtx}
 Règles :
 - Débutant (<6 mois) : technique prioritaire, charges modérées, RPE 7-8
@@ -133,8 +133,8 @@ JSON exact :
     } else if (type === 'meal_scan') {
       if (!imageData) return res.status(400).json({ error: 'imageData requis' });
       requestBody = {
-        model: MODELS.quality,
-        max_tokens: 700,
+        model: MODELS.fast,
+        max_tokens: 600,
         system: 'Nutritionniste expert. Si identification incertaine, confidence "faible". JSON uniquement.',
         messages: [{
           role: 'user',
