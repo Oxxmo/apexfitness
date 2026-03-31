@@ -271,6 +271,15 @@ textarea{resize:none}
 .alt-meta{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .swap-btn{background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:.7rem;color:var(--muted);transition:.2s;display:inline-flex;align-items:center;gap:3px}
 .swap-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* ── BODY MAP ── */
+.body-map-wrap{flex-shrink:0;border-radius:6px;overflow:hidden}
+
+/* ── BONUS EXERCISES ── */
+.bonus-ex-card{background:var(--bg-ele);border:1px solid var(--border2);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:7px;cursor:pointer;transition:.2s;border-left:3px solid var(--accent3)}
+.bonus-ex-card:active,.bonus-ex-card:hover{background:var(--accent3-d);border-color:var(--accent3)}
+.bonus-badge{background:var(--accent3-d);color:var(--accent3);font-size:.55rem;font-weight:800;text-transform:uppercase;padding:2px 6px;border-radius:20px;margin-left:5px;letter-spacing:.05em;vertical-align:middle}
+
+/* ── PERF ── */
 .perf-item{display:flex;align-items:center;gap:10px;padding:11px;background:var(--bg-ele);border-radius:var(--r-sm)}
 .perf-icon{width:38px;height:38px;border-radius:10px;background:var(--accent-d);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
 </style>
@@ -676,8 +685,8 @@ setTimeout(() => {
 // ══════════════════════════════════════════════
 // CONFIG — À remplacer
 // ══════════════════════════════════════════════
-const SB_URL  = 'https://hanhdepitbfztfgwooyb.supabase.co';
-const SB_KEY  = 'sb_publishable_LV7Q2iqHWCKwHv69T1k7VA_Nztc1C7m';
+const SB_URL  = 'https://fybbiyghjnjsnigjzatv.supabase.co';
+const SB_KEY  = 'sb_publishable_177KiLL6i-E3SxxRckZpVQ_5oZFD7KF';
 const API_URL = '/api/ai-proxy';
 
 // ══════════════════════════════════════════════
@@ -700,6 +709,96 @@ function toast(msg, ms=2600){ const el=$('toast'); el.textContent=msg; el.classL
 function parseJ(s){ try{ return JSON.parse(s.replace(/```json|```/g,'').trim()); }catch{ return null; } }
 function fmtD(iso){ return new Date(iso).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}); }
 function debounce(fn,ms){ let t; return(...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+
+// ── BODY MAP SVG ENGINE ─────────────────────────────────────
+const BZ_FRONT = [
+  ['l-shoulder','ellipse','cx="9" cy="21" rx="6" ry="5"',            ['epaule','deltoid','shoulder']],
+  ['r-shoulder','ellipse','cx="45" cy="21" rx="6" ry="5"',           ['epaule','deltoid','shoulder']],
+  ['chest',     'path',   'd="M14,18 Q27,15 40,18 L39,31 Q27,34 15,31 Z"', ['pectoraux','pecto','chest','pec']],
+  ['l-bicep',   'rect',   'x="4" y="17" width="8" height="15" rx="3"',     ['bicep']],
+  ['r-bicep',   'rect',   'x="42" y="17" width="8" height="15" rx="3"',    ['bicep']],
+  ['abs',       'rect',   'x="17" y="31" width="20" height="14" rx="2"',   ['abdo','abdominaux','core','sangle']],
+  ['l-oblique', 'rect',   'x="11" y="31" width="7" height="11" rx="2"',    ['oblique']],
+  ['r-oblique', 'rect',   'x="36" y="31" width="7" height="11" rx="2"',    ['oblique']],
+  ['l-forearm', 'rect',   'x="2" y="32" width="6" height="12" rx="3"',     ['avant-bras','forearm']],
+  ['r-forearm', 'rect',   'x="46" y="32" width="6" height="12" rx="3"',    ['avant-bras','forearm']],
+  ['l-quad',    'rect',   'x="14" y="46" width="11" height="21" rx="2"',   ['quadricep','quad','cuisse','jambe']],
+  ['r-quad',    'rect',   'x="29" y="46" width="11" height="21" rx="2"',   ['quadricep','quad','cuisse','jambe']],
+  ['l-calf',    'rect',   'x="14" y="68" width="10" height="14" rx="2"',   ['mollet','calf','gastro']],
+  ['r-calf',    'rect',   'x="30" y="68" width="10" height="14" rx="2"',   ['mollet','calf','gastro']],
+];
+const BZ_BACK = [
+  ['traps',      'path', 'd="M71,16 Q83,13 95,16 L94,25 Q83,23 72,25 Z"', ['trapeze','trap','nuque']],
+  ['upper-back', 'rect', 'x="72" y="18" width="22" height="18" rx="2"',   ['dos','dorsal','lat','grand dorsal','rhomboid','grand rond']],
+  ['l-tricep',   'rect', 'x="63" y="17" width="8" height="15" rx="3"',    ['tricep']],
+  ['r-tricep',   'rect', 'x="93" y="17" width="8" height="15" rx="3"',    ['tricep']],
+  ['lower-back', 'rect', 'x="76" y="36" width="14" height="10" rx="2"',   ['lombaire','bas du dos','érecteur']],
+  ['l-forearm-b','rect', 'x="61" y="32" width="6" height="12" rx="3"',    ['avant-bras','forearm']],
+  ['r-forearm-b','rect', 'x="97" y="32" width="6" height="12" rx="3"',    ['avant-bras','forearm']],
+  ['l-hamstring','rect', 'x="72" y="46" width="10" height="21" rx="2"',   ['ischio','hamstring','posterieur','bicep femoral']],
+  ['r-hamstring','rect', 'x="84" y="46" width="10" height="21" rx="2"',   ['ischio','hamstring','posterieur','bicep femoral']],
+  ['glutes',     'path', 'd="M72,46 Q83,43 94,46 L93,58 Q83,61 73,58 Z"', ['fessier','glute','fesse','grand fessier']],
+  ['l-calf-b',   'rect', 'x="72" y="68" width="10" height="14" rx="2"',   ['mollet','calf','gastro','soléaire']],
+  ['r-calf-b',   'rect', 'x="85" y="68" width="10" height="14" rx="2"',   ['mollet','calf','gastro','soléaire']],
+];
+
+function zoneHit(keywords, muscles) {
+  const norm = muscles.map(m => (m||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''));
+  return keywords.some(kw => norm.some(m => m.includes(kw) || kw.includes(m.split(' ')[0])));
+}
+
+function bodyMapSVG(muscles = [], compact = false) {
+  const w = compact ? 58 : 110;
+  const style = `width:${w}px;height:auto;flex-shrink:0;display:block;`;
+  const skin = '#1e1e1e', istr = '#2a2a2a';
+
+  const zEl = (type, attrs, kws) => {
+    const on = zoneHit(kws, muscles);
+    return `<${type} ${attrs} fill="${on?'#c8ff57':'#242424'}" stroke="${on?'rgba(200,255,87,.5)':'#2e2e2e'}" stroke-width="0.5" opacity="${on?'1':'0.7'}"/>`;
+  };
+  const fz = BZ_FRONT.map(([,t,a,k])=>zEl(t,a,k)).join('');
+  const bz = BZ_BACK.map(([,t,a,k])=>zEl(t,a,k)).join('');
+  const fs = compact ? 4 : 5;
+
+  return `<svg viewBox="0 0 110 87" xmlns="http://www.w3.org/2000/svg" style="${style}">
+    <rect width="110" height="87" fill="#0d0d0d" rx="${compact?5:8}"/>
+    <circle cx="27" cy="8" r="6" fill="${skin}" stroke="${istr}" stroke-width="0.5"/>
+    <rect x="24" y="13" width="6" height="4" rx="1" fill="${skin}" stroke="${istr}" stroke-width="0.5"/>
+    ${fz}
+    <text x="27" y="85" text-anchor="middle" fill="#2e2e2e" font-size="${fs}" font-family="sans-serif">AVANT</text>
+    <line x1="55" y1="1" x2="55" y2="86" stroke="#181818" stroke-width="0.8"/>
+    <circle cx="83" cy="8" r="6" fill="${skin}" stroke="${istr}" stroke-width="0.5"/>
+    <rect x="80" y="13" width="6" height="4" rx="1" fill="${skin}" stroke="${istr}" stroke-width="0.5"/>
+    ${bz}
+    <text x="83" y="85" text-anchor="middle" fill="#2e2e2e" font-size="${fs}" font-family="sans-serif">ARRIÈRE</text>
+  </svg>`;
+}
+
+// ── BONUS EXERCISES DATA ────────────────────────────────────
+const BONUS_EX = {
+  abdos: [
+    { name:'Planche', muscles:['Abdominaux','Core'], sets:3, reps:'30-45s', rep_type:'isometrique', rest_seconds:45, tip:'Corps droit, hanches ni trop hautes ni trop basses' },
+    { name:'Crunch câble', muscles:['Abdominaux'], sets:3, reps:'15-20', rep_type:'standard', rest_seconds:60, tip:'Contracte fort en bas, ne tire pas sur la nuque' },
+    { name:'Relevé de jambes suspendu', muscles:['Abdominaux','Fléchisseurs de hanche'], sets:3, reps:'10-15', rep_type:'standard', rest_seconds:60, tip:'Contrôle la descente, jambes légèrement fléchies' },
+    { name:'Russian Twist haltère', muscles:['Obliques','Abdominaux'], sets:3, reps:'20 (10/côté)', rep_type:'standard', rest_seconds:45, tip:'Dos à 45°, rotation depuis le buste pas les épaules' },
+  ],
+  avantBras: [
+    { name:'Curl marteau haltères', muscles:['Avant-bras','Biceps'], sets:3, reps:'12-15', rep_type:'standard', rest_seconds:60, tip:'Poignet neutre, amplitude complète, pas de balancement' },
+    { name:'Farmer carry', muscles:['Avant-bras','Trapèzes','Core'], sets:3, reps:'30s marche', rep_type:'isometrique', rest_seconds:60, tip:'Charge lourde, dos droit, épaules basses et stables' },
+    { name:'Enroulement de poignet barre', muscles:['Avant-bras'], sets:3, reps:'15-20', rep_type:'tempo', rest_seconds:45, tip:'Mouvement lent 3s, pleine amplitude du poignet' },
+  ],
+  mollets: [
+    { name:'Élévation mollets debout', muscles:['Mollets','Gastrocnémien'], sets:4, reps:'15-20', rep_type:'tempo', rest_seconds:60, tip:'Montée explosive, descente 3s contrôlée, full range' },
+    { name:'Élévation mollets assis machine', muscles:['Mollets','Soléaire'], sets:3, reps:'15-20', rep_type:'pause', rest_seconds:60, tip:'Pause 2s en bas pour cibler le soléaire en profondeur' },
+    { name:'Calf raises unilatéral sur marche', muscles:['Mollets'], sets:3, reps:'12/jambe', rep_type:'standard', rest_seconds:45, tip:'Range maximale de mouvement, talons sous le bord' },
+  ],
+  mobilite: [
+    { name:'Rotation thoracique au sol', muscles:['Colonne thoracique','Dos'], sets:2, reps:'10/côté', rep_type:'standard', rest_seconds:30, tip:'Genou au sol, rotation max sans que le bassin suive' },
+    { name:'Fente hip flexor stretch', muscles:['Fléchisseurs de hanche','Quadriceps'], sets:2, reps:'45s/côté', rep_type:'isometrique', rest_seconds:30, tip:'Pousse le bassin en avant, reste gainé, respire' },
+    { name:'Band pull apart', muscles:['Épaules postérieures','Rhomboïdes'], sets:3, reps:'15-20', rep_type:'standard', rest_seconds:30, tip:'Omoplates qui se rapprochent, coudes légèrement fléchis' },
+    { name:'Deep squat tempo', muscles:['Hanches','Chevilles','Quadriceps'], sets:3, reps:'5-8', rep_type:'tempo', rest_seconds:45, tip:'Descente 5s, pause 2s en bas, montée libre et contrôlée' },
+  ],
+};
 
 // Convertit markdown basique en HTML lisible
 function renderMD(text) {
@@ -1117,7 +1216,29 @@ function renderSessPane(){
       <button class="btn bd bsm" onclick="finishSession()">Terminer</button>
     </div>
     <div id="ex-list">${ses.exercises.map((ex,ei)=>renderExCard(ex,ei,si)).join('')}</div>
-    <button class="btn bp bfull" style="margin-top:14px;" onclick="finishSession()">✅ Valider la séance</button>`;
+
+    <div class="card session-muscles-card">
+      <span class="lbl">💪 Muscles travaillés cette séance</span>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:8px;" id="sess-muscles-wrap">
+        ${bodyMapSVG([...new Set(ses.exercises.flatMap(e=>e.muscles||[]))], false)}
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          ${[...new Set(ses.exercises.flatMap(e=>e.muscles||[]))].map(m=>`<span class="chip cbl" style="font-size:.6rem;">${m}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <span class="lbl">+ Exercice bonus</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <button class="btn bs bxs" onclick="showBonusPanel('abdos')">🏋️ Abdos</button>
+        <button class="btn bs bxs" onclick="showBonusPanel('avantBras')">🤜 Avant-bras</button>
+        <button class="btn bs bxs" onclick="showBonusPanel('mollets')">🦵 Mollets</button>
+        <button class="btn bs bxs" onclick="showBonusPanel('mobilite')">🧘 Mobilité</button>
+      </div>
+      <div id="bonus-panel"></div>
+    </div>
+
+    <button class="btn bp bfull" style="margin-bottom:8px;" onclick="finishSession()">✅ Valider la séance</button>`;
 }
 
 function renderExCard(ex,ei,si){
@@ -1127,7 +1248,7 @@ function renderExCard(ex,ei,si){
     <div class="ex-card" id="ec-${ei}">
       <div class="ex-head" onclick="togEx(${ei})">
         <div style="flex:1;min-width:0;">
-          <div class="ex-name">${ex.name}</div>
+          <div class="ex-name">${ex.name}${ex.bonus?'<span class="bonus-badge">Bonus</span>':''}</div>
           <div class="ex-meta">${ex.sets} séries × ${ex.reps} · repos ${ex.rest_seconds}s</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
@@ -1138,7 +1259,12 @@ function renderExCard(ex,ei,si){
         </div>
       </div>
       <div class="ex-body" id="eb-${ei}">
-        <div class="ex-tags">${ex.muscles.map(m=>`<span class="ex-tag">${m}</span>`).join('')}</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;">
+          <div style="flex:1;">
+            <div class="ex-tags">${ex.muscles.map(m=>`<span class="ex-tag">${m}</span>`).join('')}</div>
+          </div>
+          <div class="body-map-wrap">${bodyMapSVG(ex.muscles||[], true)}</div>
+        </div>
         <div class="rep-info-box ri-${ex.rep_type||'standard'}"><strong>${rt.label}</strong> · ${rt.desc}</div>
         ${ex.rep_type_note?`<div style="font-size:.73rem;color:var(--accent3);margin-bottom:8px;font-style:italic;">📌 ${ex.rep_type_note}</div>`:''}
         <table class="sets-tbl">
@@ -1176,6 +1302,49 @@ function togSet(si,ei,seti,restS,exName){
   const hd=$(`ec-${ei}`)?.querySelector('.ex-head'), prev=hd?.querySelector('.chip.cgr:not(.rep-badge)');
   if(allD&&!prev){ const sp=document.createElement('span'); sp.className='chip cgr'; sp.style.fontSize='.58rem'; sp.textContent='✓'; hd.querySelector('div:last-child').prepend(sp); }
   else if(!allD&&prev) prev.remove();
+}
+
+// ── BONUS EXERCISES ───────────────────────────────────────
+function showBonusPanel(cat) {
+  const exList = BONUS_EX[cat];
+  if (!exList) return;
+  const labels = { abdos:'Abdos 🏋️', avantBras:'Avant-bras 🤜', mollets:'Mollets 🦵', mobilite:'Mobilité 🧘' };
+  const panel = $('bonus-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    <div style="font-size:.75rem;font-weight:700;color:var(--accent3);margin-bottom:8px;">${labels[cat]} — Choisis :</div>
+    ${exList.map((ex,i) => `
+      <div class="bonus-ex-card" onclick="addBonusEx('${cat}',${i})">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:.86rem;margin-bottom:2px;">${ex.name}</div>
+            <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">${ex.sets} séries × ${ex.reps} · ${ex.muscles.join(', ')}</div>
+            <div style="font-size:.72rem;color:var(--accent3);">💡 ${ex.tip}</div>
+          </div>
+          <div class="body-map-wrap" style="margin-top:2px;">${bodyMapSVG(ex.muscles, true)}</div>
+        </div>
+      </div>`).join('')}
+    <button class="btn bg bxs" onclick="$('bonus-panel').innerHTML=''">Annuler</button>
+  `;
+}
+
+function addBonusEx(cat, idx) {
+  if (!ACT_SESS || !PROG) return;
+  const si = ACT_SESS.sessionIndex;
+  const src = BONUS_EX[cat][idx];
+  const ex = { ...src, bonus: true, sets_data: Array.from({ length: src.sets }, ()=>({ weight:'', reps:'', done:false })) };
+  PROG.sessions_data[si].exercises.push(ex);
+  dbSave();
+  renderSessPane();
+  toast(`${ex.name} ajouté ! 💪`);
+}
+
+// ── UPDATE MUSCLES MAP after toggle ───────────────────────
+function updateSessionMusclesMap(si) {
+  const wrap = $('sess-muscles-wrap');
+  if (!wrap || !PROG) return;
+  const allM = [...new Set(PROG.sessions_data[si].exercises.flatMap(e=>e.muscles||[]))];
+  wrap.innerHTML = `${bodyMapSVG(allM, false)}<div style="display:flex;flex-wrap:wrap;gap:4px;">${allM.map(m=>`<span class="chip cbl" style="font-size:.6rem;">${m}</span>`).join('')}</div>`;
 }
 
 async function finishSession(){
