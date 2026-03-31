@@ -127,18 +127,35 @@ JSON exact :
       };
 
     } else if (type === 'alt_exercise') {
-      const muscles = (u.muscles||[]).join(', ');
+      const muscles = (u.muscles||[]).join(', ') || 'mêmes muscles';
+      const musclesJson = JSON.stringify(u.muscles||[]);
       requestBody = {
         model: MODELS.fast,
-        max_tokens: 500,
-        system: `Coach sportif Basic-Fit. JSON uniquement, sans markdown. RÈGLE CRITIQUE : les alternatives doivent cibler EXACTEMENT les mêmes muscles que l'exercice original. Aucune exception.`,
+        max_tokens: 700,
+        system: `Coach sportif Basic-Fit. JSON uniquement. RÈGLE ABSOLUE : les 3 alternatives ciblent exactement les muscles demandés. Tous les champs sont OBLIGATOIRES, aucune valeur vide ou null.`,
         messages: [{
           role: 'user',
-          content: `Alternative à "${u.exercise_name}" qui cible : ${muscles}.
-IMPORTANT : UNIQUEMENT des exercices pour ces muscles : ${muscles}. Si l'original est un exercice de bras, les alternatives sont des exercices de bras. Pas de jambes si l'original est un exercice de bras.
+          content: `3 alternatives à l'exercice "${u.exercise_name}" ciblant : ${muscles}.
+Chaque alternative DOIT travailler ces muscles : ${muscles}. Exercices réalisables Basic-Fit, accessibles débutant.
 
-JSON exact :
-{"alternatives":[{"name":"","muscles":${JSON.stringify(u.muscles||[])},"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"","why":"Pourquoi plus accessible"}]}`
+Retourne EXACTEMENT ce JSON avec 3 éléments complets (aucun champ manquant) :
+{"alternatives":[{"name":"Nom exercice 1","muscles":${musclesJson},"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"Conseil technique en 1 phrase","why":"Pourquoi plus accessible"},{"name":"Nom exercice 2","muscles":${musclesJson},"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"Conseil technique en 1 phrase","why":"Pourquoi plus accessible"},{"name":"Nom exercice 3","muscles":${musclesJson},"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"Conseil technique en 1 phrase","why":"Pourquoi plus accessible"}]}`
+        }]
+      };
+
+    // ── ADD EXERCISE ─────────────────────────────────────────
+    } else if (type === 'add_exercise') {
+      const target   = u.target_muscle || 'corps entier';
+      const existing = (u.existing_exercises || []).join(', ') || 'aucun';
+      requestBody = {
+        model: MODELS.fast,
+        max_tokens: 600,
+        system: `Coach sportif Basic-Fit. JSON uniquement. Tous les champs obligatoires.`,
+        messages: [{
+          role: 'user',
+          content: `3 exercices pour "${target}" à Basic-Fit, débutant. Évite : ${existing}.
+JSON (3 éléments, tous champs remplis) :
+{"exercises":[{"name":"nom","muscles":["${target}"],"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"conseil court"},{"name":"nom2","muscles":["${target}"],"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"conseil court"},{"name":"nom3","muscles":["${target}"],"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"conseil court"}]}`
         }]
       };
 
