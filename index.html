@@ -28,6 +28,8 @@ body{display:flex;flex-direction:column}
 /* ── BOOT ── */
 #boot{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
 #boot.hide{opacity:0;pointer-events:none}
+.cl-item{font-size:.73rem;color:#888;padding:4px 0;border-bottom:1px solid #1a1a1a;line-height:1.4;}
+.cl-item:last-child{border-bottom:none;padding-bottom:0}
 .boot-logo{font-family:'Bebas Neue',cursive;font-size:4rem;letter-spacing:8px;color:var(--accent)}
 
 /* ── AUTH ── */
@@ -286,7 +288,20 @@ textarea{resize:none}
 </head>
 <body>
 
-<div id="boot"><div class="boot-logo">APEX</div><div class="spinner"></div></div>
+<div id="boot">
+  <div class="boot-logo">APEX</div>
+  <div class="spinner" style="margin-bottom:20px;"></div>
+  <div id="boot-changelog" style="max-width:300px;width:90%;background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:14px 16px;opacity:0;transition:opacity .6s .4s;">
+    <div style="font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">✨ Nouveautés v1.4</div>
+    <div class="cl-item">🗑 Suppression d'exercices en séance</div>
+    <div class="cl-item">🎯 Ajout d'exercices ciblés par muscle</div>
+    <div class="cl-item">📊 Référentiel de charges par exercice</div>
+    <div class="cl-item">🏆 Progression visible à chaque série</div>
+    <div class="cl-item">🔄 Meilleures alternatives (même groupe)</div>
+    <div class="cl-item">▶ Liens tuto YouTube sur chaque exercice</div>
+    <div class="cl-item">🗺 Carte anatomique sur chaque exercice</div>
+  </div>
+</div>
 
 <!-- ══ AUTH ══════════════════════════════════════ -->
 <div id="auth-screen" class="hidden">
@@ -682,6 +697,12 @@ setTimeout(() => {
   }
 }, 7000);
 
+// Révèle le changelog après 500ms
+setTimeout(() => {
+  const cl = document.getElementById('boot-changelog');
+  if (cl) cl.style.opacity = '1';
+}, 500);
+
 // ══════════════════════════════════════════════
 // CONFIG — À remplacer
 // ══════════════════════════════════════════════
@@ -700,6 +721,25 @@ let USER = null, PROG = null, ACT_SESS = null, CHAT = [];
 let OB_STEP = 1, OB = { goal:'recomposition', morphotype:'mésomorphe', sessions_per_week:4 };
 let ACT_MULT = 1.55;
 let _confirmFn = null;
+
+// Cache référentiel charges — { "Développé couché": { best_weight, best_reps, last_sets, rep_type, logged_at } }
+let EX_HIST = {};
+
+async function loadExHistory() {
+  if (!USER) return;
+  // Charge le dernier enregistrement de chaque exercice
+  const { data } = await sb.from('exercise_history')
+    .select('exercise_name, best_weight, best_reps, last_sets, rep_type, session_name, week_number, logged_at')
+    .eq('user_id', USER.id)
+    .order('logged_at', { ascending: false })
+    .limit(200);
+  if (!data) return;
+  EX_HIST = {};
+  // Keep only the most recent entry per exercise name
+  data.forEach(row => {
+    if (!EX_HIST[row.exercise_name]) EX_HIST[row.exercise_name] = row;
+  });
+}
 
 // ══════════════════════════════════════════════
 // UTILS
@@ -895,6 +935,7 @@ async function boot(){
   try {
     await loadProg();
     await loadChat();
+    await loadExHistory();
     renderApp();
     loadTip();
     $('app-screen').classList.add('visible');
@@ -1256,6 +1297,29 @@ function renderSessPane(){
 function renderExCard(ex,ei,si){
   const rt=RT[ex.rep_type||'standard']||RT.standard;
   const allDone=ex.sets_data.every(s=>s.done);
+
+  // Référentiel de la dernière séance
+  const hist = EX_HIST[ex.name];
+  let histHtml = '';
+  if (hist) {
+    const ago = Math.round((Date.now() - new Date(hist.logged_at)) / 86400000);
+    const agoTxt = ago === 0 ? 'aujourd\'hui' : ago === 1 ? 'hier' : `il y a ${ago}j`;
+    const prevSets = hist.last_sets || [];
+    const setsWithWeight = prevSets.filter(s => s.weight || s.reps);
+    histHtml = `
+      <div style="background:rgba(200,255,87,.06);border:1px solid rgba(200,255,87,.15);border-radius:8px;padding:9px 11px;margin-bottom:10px;">
+        <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:6px;">📊 Dernière fois — ${agoTxt}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;">
+          ${setsWithWeight.map((s,i) => {
+            const w = s.weight ? `${s.weight}kg` : '—';
+            const r = s.reps   ? `×${s.reps}`   : '';
+            const done = s.done ? 'color:var(--accent)' : 'color:var(--muted)';
+            return `<span style="font-size:.68rem;font-weight:700;background:var(--bg-card);padding:3px 8px;border-radius:6px;${done}">S${i+1} ${w}${r}</span>`;
+          }).join('')}
+        </div>
+        ${hist.best_weight ? `<div style="font-size:.68rem;color:var(--muted);">🏆 Meilleur set : <strong style="color:var(--text);">${hist.best_weight}kg × ${hist.best_reps||'?'} reps</strong> · <span class="rep-badge ${RT[hist.rep_type||'standard']?.cls||'rt-standard'}" style="font-size:.52rem;vertical-align:middle;">${RT[hist.rep_type||'standard']?.label||'Standard'}</span></div>` : ''}
+      </div>`;
+  }
   return `
     <div class="ex-card" id="ec-${ei}">
       <div class="ex-head" onclick="togEx(${ei})">
@@ -1272,6 +1336,7 @@ function renderExCard(ex,ei,si){
         </div>
       </div>
       <div class="ex-body" id="eb-${ei}">
+        ${histHtml}
         <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;">
           <div style="flex:1;">
             <div class="ex-tags">${ex.muscles.map(m=>`<span class="ex-tag">${m}</span>`).join('')}</div>
@@ -1459,10 +1524,40 @@ async function finishSession(){
   const si=ACT_SESS.sessionIndex, ses=PROG.sessions_data[si];
   ses.completed=true; ses.completedAt=new Date().toISOString();
   const dur=Math.floor((Date.now()-ACT_SESS.startTime)/60000);
+
+  // Save session log
   await sb.from('session_logs').insert([{user_id:USER.id,session_name:ses.name,exercises_data:ses.exercises,week_number:USER.week_number||1,duration_minutes:dur}]);
   await sb.from('programs').update({sessions_data:PROG.sessions_data}).eq('id',PROG.id);
+
+  // Save exercise history (référentiel des charges)
+  const histRows = ses.exercises
+    .filter(ex => ex.sets_data?.some(s => s.weight || s.reps))
+    .map(ex => {
+      const doneSets = ex.sets_data.filter(s => s.done || s.weight || s.reps);
+      const bestSet  = doneSets.reduce((best, s) => {
+        const w = parseFloat(s.weight)||0;
+        return w > (parseFloat(best?.weight)||0) ? s : best;
+      }, doneSets[0] || {});
+      return {
+        user_id:       USER.id,
+        exercise_name: ex.name,
+        best_weight:   parseFloat(bestSet?.weight)||null,
+        best_reps:     bestSet?.reps ? String(bestSet.reps) : null,
+        last_sets:     ex.sets_data,
+        rep_type:      ex.rep_type || 'standard',
+        session_name:  ses.name,
+        week_number:   USER.week_number || 1
+      };
+    });
+  if (histRows.length) {
+    await sb.from('exercise_history').insert(histRows);
+    // Refresh local cache
+    await loadExHistory();
+  }
+
   USER.total_sessions=(USER.total_sessions||0)+1;
   await sb.from('profiles').update({total_sessions:USER.total_sessions}).eq('id',USER.id);
+
   // Streak
   const today=new Date().toISOString().slice(0,10), lastStr=localStorage.getItem(`apex_last_${USER.id}`);
   const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
@@ -1643,10 +1738,11 @@ async function resetHistory(){
     sb.from('session_logs').delete().eq('user_id',USER.id),
     sb.from('meal_scans').delete().eq('user_id',USER.id),
     sb.from('chat_history').delete().eq('user_id',USER.id),
-    sb.from('programs').delete().eq('user_id',USER.id)
+    sb.from('programs').delete().eq('user_id',USER.id),
+    sb.from('exercise_history').delete().eq('user_id',USER.id)
   ]);
   USER.total_sessions=0; await sb.from('profiles').update({total_sessions:0,week_number:1}).eq('id',USER.id);
-  PROG=null; CHAT=[]; ACT_SESS=null;
+  PROG=null; CHAT=[]; ACT_SESS=null; EX_HIST={};
   localStorage.removeItem(`apex_str_${USER.id}`); localStorage.removeItem(`apex_last_${USER.id}`);
   closeSettings(); renderHome(); renderSessPane(); loadMealHist(); loadPerfData();
   $('prog-out').style.display='none'; $('diet-out').style.display='none';
@@ -1660,10 +1756,11 @@ async function deleteAccount(){
     sb.from('meal_scans').delete().eq('user_id',USER.id),
     sb.from('chat_history').delete().eq('user_id',USER.id),
     sb.from('programs').delete().eq('user_id',USER.id),
+    sb.from('exercise_history').delete().eq('user_id',USER.id),
     sb.from('profiles').delete().eq('id',USER.id)
   ]);
   localStorage.removeItem('apex_p'); localStorage.removeItem(`apex_str_${USER.id}`); localStorage.removeItem(`apex_last_${USER.id}`);
-  USER=null; PROG=null; CHAT=[]; ACT_SESS=null;
+  USER=null; PROG=null; CHAT=[]; ACT_SESS=null; EX_HIST={};
   closeSettings(); $('app-screen').classList.remove('visible'); $('app-screen').style.display='none';
   $('auth-screen').classList.remove('hidden'); $('pseudo-in').value='';
   toast('Compte supprimé');
