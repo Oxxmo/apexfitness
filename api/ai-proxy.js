@@ -126,32 +126,19 @@ JSON exact :
         }]
       };
 
-    // ── ALT EXERCISE ─────────────────────────────────────────
     } else if (type === 'alt_exercise') {
+      const muscles = (u.muscles||[]).join(', ');
       requestBody = {
         model: MODELS.fast,
         max_tokens: 500,
-        system: 'Coach sportif expert. Exercices Basic-Fit uniquement. JSON uniquement, sans markdown.',
+        system: `Coach sportif Basic-Fit. JSON uniquement, sans markdown. RÈGLE CRITIQUE : les alternatives doivent cibler EXACTEMENT les mêmes muscles que l'exercice original. Aucune exception.`,
         messages: [{
           role: 'user',
-          content: `Propose 3 alternatives à "${u.exercise_name}" ciblant les mêmes muscles : ${u.muscles?.join(', ')}.
-Critères : accessibles à un débutant, faisables à Basic-Fit, même groupe musculaire.
+          content: `Alternative à "${u.exercise_name}" qui cible : ${muscles}.
+IMPORTANT : UNIQUEMENT des exercices pour ces muscles : ${muscles}. Si l'original est un exercice de bras, les alternatives sont des exercices de bras. Pas de jambes si l'original est un exercice de bras.
 
 JSON exact :
-{
-  "alternatives": [
-    {
-      "name": "Nom de l'exercice",
-      "muscles": ["muscle1","muscle2"],
-      "sets": 3,
-      "reps": "10-12",
-      "rest_seconds": 90,
-      "rep_type": "standard",
-      "tip": "Conseil technique court",
-      "why": "Pourquoi c'est plus accessible"
-    }
-  ]
-}`
+{"alternatives":[{"name":"","muscles":${JSON.stringify(u.muscles||[])},"sets":3,"reps":"10-12","rest_seconds":90,"rep_type":"standard","tip":"","why":"Pourquoi plus accessible"}]}`
         }]
       };
 
