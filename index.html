@@ -1238,6 +1238,18 @@ function renderSessPane(){
       <div id="bonus-panel"></div>
     </div>
 
+    <div style="margin-bottom:14px;">
+      <span class="lbl">🎯 Ajouter un exercice ciblé</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;" id="add-ex-chips">
+        ${[...new Set(ses.exercises.flatMap(e=>(e.muscles||[]).slice(0,2)))].slice(0,8).map(m=>`
+          <button class="chip cmu add-chip" style="cursor:pointer;padding:6px 12px;font-size:.68rem;transition:.2s;" 
+                  onclick="loadAddSuggestions('${m.replace(/'/g,"\\'")}',${si})">+ ${m}</button>`).join('')}
+        <button class="chip cmu add-chip" style="cursor:pointer;padding:6px 12px;font-size:.68rem;" 
+                onclick="loadAddSuggestions('Corps entier',${si})">+ Corps entier</button>
+      </div>
+      <div id="add-ex-panel"></div>
+    </div>
+
     <button class="btn bp bfull" style="margin-bottom:8px;" onclick="finishSession()">✅ Valider la séance</button>`;
 }
 
@@ -1253,6 +1265,7 @@ function renderExCard(ex,ei,si){
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <button class="swap-btn" onclick="event.stopPropagation();openAlt(${si},${ei})">🔄 Alt.</button>
+          <button class="swap-btn" style="color:var(--danger);border-color:rgba(255,87,87,.25);" onclick="event.stopPropagation();deleteExercise(${si},${ei})" title="Supprimer">🗑</button>
           <span class="rep-badge ${rt.cls}">${rt.label}</span>
           ${allDone?'<span class="chip cgr" style="font-size:.58rem;">✓</span>':''}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1280,8 +1293,9 @@ function renderExCard(ex,ei,si){
           </tbody>
         </table>
         <div class="tip-box">💡 ${ex.tip}</div>
-        <div class="rest-btn-row">
-          <button class="btn bs bsm bfull" onclick="openTimer(${ex.rest_seconds},'${(ex.name||'').replace(/'/g,"\\'")}')">⏱ Timer récup (${ex.rest_seconds}s)</button>
+        <div class="rest-btn-row" style="display:flex;gap:8px;">
+          <button class="btn bs bsm" style="flex:1;" onclick="openTimer(${ex.rest_seconds},'${(ex.name||'').replace(/'/g,"\\'")}')">⏱ Timer récup (${ex.rest_seconds}s)</button>
+          <a href="${ytLink(ex.name||'')}" target="_blank" class="btn bs bsm" style="flex:1;text-decoration:none;color:#ff4444;background:rgba(255,68,68,.08);border-color:rgba(255,68,68,.2);">▶ Tuto</a>
         </div>
       </div>
     </div>`;
@@ -1337,6 +1351,99 @@ function addBonusEx(cat, idx) {
   dbSave();
   renderSessPane();
   toast(`${ex.name} ajouté ! 💪`);
+}
+
+// ── DELETE EXERCISE ────────────────────────────────────────
+function deleteExercise(si, ei) {
+  if (!PROG) return;
+  const name = PROG.sessions_data[si].exercises[ei]?.name || 'cet exercice';
+  confirmAction(`Supprimer "${name}" de la séance ?`, () => doDeleteExercise(si, ei));
+}
+
+function doDeleteExercise(si, ei) {
+  if (!PROG) return;
+  const removed = PROG.sessions_data[si].exercises.splice(ei, 1)[0];
+  dbSave();
+  renderSessPane();
+  toast(`🗑 "${removed.name}" supprimé`);
+}
+
+// ── ADD EXERCISE ────────────────────────────────────────────
+let ADD_SUGGESTIONS = [];
+
+async function loadAddSuggestions(muscle, si) {
+  ADD_SUGGESTIONS = [];
+  const panel = $('add-ex-panel');
+  if (!panel) return;
+
+  // Highlight active chip
+  document.querySelectorAll('.add-chip').forEach(b => {
+    const active = b.textContent.includes(muscle);
+    b.style.background   = active ? 'var(--accent-d)'           : '';
+    b.style.color        = active ? 'var(--accent)'             : '';
+    b.style.borderColor  = active ? 'rgba(200,255,87,.3)'       : '';
+  });
+
+  panel.innerHTML = `<div class="loading" style="padding:14px;"><div class="spinner spinner-sm"></div><p>Suggestions pour ${muscle}…</p></div>`;
+
+  try {
+    const existing = (PROG.sessions_data[si].exercises || []).map(e => e.name);
+    const r = await api({ type:'add_exercise', user:{ ...(USER||{}), target_muscle:muscle, existing_exercises:existing } });
+    const data = parseJ(aiTxt(r));
+
+    const exs = (data?.exercises || []).filter(e => e.name && e.name.trim() && e.name !== 'undefined')
+      .map(e => ({
+        name:         e.name.trim(),
+        muscles:      Array.isArray(e.muscles) && e.muscles.length ? e.muscles : [muscle],
+        sets:         (typeof e.sets === 'number' && e.sets > 0) ? e.sets : 3,
+        reps:         (e.reps && String(e.reps).trim()) ? String(e.reps) : '10-12',
+        rest_seconds: (typeof e.rest_seconds === 'number') ? e.rest_seconds : 90,
+        rep_type:     ['standard','echec','tempo','pause','dropset','isometrique'].includes(e.rep_type) ? e.rep_type : 'standard',
+        tip:          (e.tip && e.tip.trim()) ? e.tip.trim() : 'Contrôle le mouvement sur toute l\'amplitude'
+      }));
+
+    if (!exs.length) {
+      panel.innerHTML = `<div style="text-align:center;padding:12px;"><div style="color:var(--muted);font-size:.8rem;margin-bottom:8px;">Aucune suggestion, réessaie.</div><button class="btn bs bxs" onclick="loadAddSuggestions('${muscle.replace(/'/g,"\\'")}',${si})">🔄 Réessayer</button></div>`;
+      return;
+    }
+
+    ADD_SUGGESTIONS = exs;
+    const rt_map = { standard:'rt-standard', echec:'rt-echec', tempo:'rt-tempo', pause:'rt-pause', dropset:'rt-dropset', isometrique:'rt-isometrique' };
+
+    panel.innerHTML = exs.map((ex, i) => `
+      <div class="bonus-ex-card" onclick="confirmAddExercise(${i},${si})" style="border-left-color:var(--accent);">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:.87rem;margin-bottom:2px;">${ex.name}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;">
+              <span class="chip cgr" style="font-size:.56rem;">${ex.sets}×${ex.reps}</span>
+              <span class="chip cmu" style="font-size:.56rem;">${ex.rest_seconds}s repos</span>
+              <span class="rep-badge ${rt_map[ex.rep_type]||'rt-standard'}" style="font-size:.54rem;">${(RT[ex.rep_type]||RT.standard).label}</span>
+            </div>
+            <div style="font-size:.72rem;color:var(--accent2);">💡 ${ex.tip}</div>
+            <a href="${ytLink(ex.name)}" target="_blank" onclick="event.stopPropagation()" 
+               style="display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:.68rem;color:#ff4444;text-decoration:none;background:rgba(255,68,68,.08);padding:3px 8px;border-radius:20px;">▶ Tuto</a>
+          </div>
+          <div class="body-map-wrap" style="margin-top:2px;">${bodyMapSVG(ex.muscles, true)}</div>
+        </div>
+      </div>`).join('') +
+    `<button class="btn bg bxs bfull" style="margin-top:4px;" onclick="loadAddSuggestions('${muscle.replace(/'/g,"\\'")}',${si})">🔄 Autres suggestions</button>`;
+
+  } catch(e) {
+    panel.innerHTML = `<div style="text-align:center;padding:12px;"><div style="color:var(--danger);font-size:.8rem;margin-bottom:8px;">Erreur réseau.</div><button class="btn bs bxs" onclick="loadAddSuggestions('${muscle.replace(/'/g,"\\'")}',${si})">🔄 Réessayer</button></div>`;
+  }
+}
+
+function confirmAddExercise(idx, si) {
+  const ex = ADD_SUGGESTIONS[idx];
+  if (!ex || !PROG) return;
+  const newEx = { ...ex, bonus:true, sets_data: Array.from({ length:ex.sets }, ()=>({ weight:'', reps:'', done:false })) };
+  PROG.sessions_data[si].exercises.push(newEx);
+  dbSave();
+  $('add-ex-panel').innerHTML = '';
+  document.querySelectorAll('.add-chip').forEach(b => { b.style.background = ''; b.style.color = ''; b.style.borderColor = ''; });
+  renderSessPane();
+  toast(`✅ "${ex.name}" ajouté à la séance`);
 }
 
 // ── UPDATE MUSCLES MAP after toggle ───────────────────────
@@ -1563,52 +1670,112 @@ async function deleteAccount(){
 }
 
 // ══════════════════════════════════════════════
-// ALT EXERCISE
 // ══════════════════════════════════════════════
-let ALT = { si:null, ei:null, selected:null, data:[] };
+// ALT EXERCISE — avec validation, undo, retry, tutos
+// ══════════════════════════════════════════════
+let ALT = { si:null, ei:null, selected:null, data:[], origEx:null };
+
+function ytLink(name) {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(name+' musculation technique tutoriel')}&hl=fr`;
+}
+
+function sanitizeAlt(a, fallbackMuscles) {
+  // Ensures all required fields exist and are valid
+  return {
+    name:         (a.name && a.name.trim() && a.name !== 'undefined') ? a.name.trim() : null,
+    muscles:      Array.isArray(a.muscles) && a.muscles.length ? a.muscles : fallbackMuscles,
+    sets:         (typeof a.sets === 'number' && a.sets > 0) ? a.sets : 3,
+    reps:         (a.reps && String(a.reps).trim()) ? String(a.reps) : '10-12',
+    rest_seconds: (typeof a.rest_seconds === 'number' && a.rest_seconds > 0) ? a.rest_seconds : 90,
+    rep_type:     ['standard','echec','tempo','pause','dropset','isometrique'].includes(a.rep_type) ? a.rep_type : 'standard',
+    tip:          (a.tip && a.tip.trim()) ? a.tip.trim() : 'Contrôle le mouvement sur toute l\'amplitude',
+    why:          (a.why && a.why.trim()) ? a.why.trim() : 'Alternative accessible'
+  };
+}
 
 async function openAlt(si, ei) {
   const ex = PROG.sessions_data[si].exercises[ei];
-  ALT = { si, ei, selected:null, data:[] };
+  ALT = { si, ei, selected:null, data:[], origEx: JSON.parse(JSON.stringify(ex)) };
   $('alt-replacing').textContent = `Remplacer : ${ex.name}`;
   $('alt-list').innerHTML = '';
   $('alt-footer').style.display = 'none';
   $('alt-close-btn').style.display = 'block';
   $('alt-loading').style.display = 'flex';
   $('alt-modal').classList.remove('hidden');
+  await fetchAlts(ex);
+}
 
+async function fetchAlts(ex) {
+  $('alt-loading').style.display = 'flex';
+  $('alt-list').innerHTML = '';
+  $('alt-footer').style.display = 'none';
   try {
-    const r = await api({
-      type: 'alt_exercise',
-      user: { ...(USER||{}), exercise_name: ex.name, muscles: ex.muscles }
-    });
-    const data = parseJ(aiTxt(r));
+    const r = await api({ type:'alt_exercise', user:{ ...(USER||{}), exercise_name:ex.name, muscles:ex.muscles } });
+    const raw = parseJ(aiTxt(r));
     $('alt-loading').style.display = 'none';
 
-    if (!data?.alternatives?.length) { $('alt-list').innerHTML = '<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:20px;">Aucune alternative trouvée, réessaie.</div>'; return; }
+    // Validate & sanitize each alternative
+    const alts = (raw?.alternatives || [])
+      .map(a => sanitizeAlt(a, ex.muscles))
+      .filter(a => a.name !== null);
 
-    ALT.data = data.alternatives;
+    if (!alts.length) {
+      $('alt-list').innerHTML = `
+        <div style="text-align:center;padding:20px;">
+          <div style="color:var(--muted);font-size:.82rem;margin-bottom:12px;">Aucune alternative valide reçue.</div>
+          <button class="btn bs bsm" onclick="retryAlts()">🔄 Réessayer</button>
+        </div>`;
+      $('alt-close-btn').style.display = 'block';
+      return;
+    }
+
+    ALT.data = alts;
     const rt_map = { standard:'rt-standard', echec:'rt-echec', tempo:'rt-tempo', pause:'rt-pause', dropset:'rt-dropset', isometrique:'rt-isometrique' };
 
-    $('alt-list').innerHTML = data.alternatives.map((a, i) => `
+    $('alt-list').innerHTML = alts.map((a, i) => `
       <div class="alt-card" id="alt-${i}" onclick="selAlt(${i})">
-        <div class="alt-name">${a.name}</div>
-        <div class="alt-why">✓ ${a.why}</div>
-        <div class="alt-meta">
-          <span class="chip cbl" style="font-size:.56rem;">${a.muscles?.join(', ')}</span>
-          <span class="rep-badge ${rt_map[a.rep_type||'standard']||'rt-standard'}" style="font-size:.55rem;">${(RT[a.rep_type||'standard']||RT.standard).label}</span>
-          <span class="chip cmu" style="font-size:.56rem;">${a.sets}×${a.reps} · ${a.rest_seconds}s</span>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="alt-name">${a.name}</div>
+            <div class="alt-why">✓ ${a.why}</div>
+            <div class="alt-meta">
+              <span class="chip cbl" style="font-size:.56rem;">${a.muscles.join(', ')}</span>
+              <span class="rep-badge ${rt_map[a.rep_type]||'rt-standard'}" style="font-size:.55rem;">${(RT[a.rep_type]||RT.standard).label}</span>
+              <span class="chip cmu" style="font-size:.56rem;">${a.sets}×${a.reps} · ${a.rest_seconds}s</span>
+            </div>
+            <div class="alt-tip">💡 ${a.tip}</div>
+            <a href="${ytLink(a.name)}" target="_blank" onclick="event.stopPropagation()" 
+               style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:.7rem;color:#ff4444;text-decoration:none;background:rgba(255,68,68,.1);padding:4px 9px;border-radius:20px;border:1px solid rgba(255,68,68,.2);">
+              ▶ Voir un tuto YouTube
+            </a>
+          </div>
+          <div class="body-map-wrap" style="margin-top:2px;">${bodyMapSVG(a.muscles, true)}</div>
         </div>
-        <div class="alt-tip">💡 ${a.tip}</div>
       </div>`).join('');
 
     $('alt-footer').style.display = 'block';
     $('alt-close-btn').style.display = 'none';
     $('alt-confirm-btn').disabled = true;
+
+    // Add retry button below list
+    $('alt-list').insertAdjacentHTML('beforeend', `
+      <button class="btn bg bsm bfull" style="margin-top:4px;" onclick="retryAlts()">🔄 Autres propositions</button>`);
+
   } catch(e) {
     $('alt-loading').style.display = 'none';
-    $('alt-list').innerHTML = '<div style="color:var(--danger);font-size:.82rem;text-align:center;padding:20px;">Erreur, réessaie.</div>';
+    $('alt-list').innerHTML = `
+      <div style="text-align:center;padding:20px;">
+        <div style="color:var(--danger);font-size:.82rem;margin-bottom:12px;">Erreur réseau, réessaie.</div>
+        <button class="btn bs bsm" onclick="retryAlts()">🔄 Réessayer</button>
+      </div>`;
+    $('alt-close-btn').style.display = 'block';
   }
+}
+
+function retryAlts() {
+  if (ALT.si === null || !PROG) return;
+  const ex = PROG.sessions_data[ALT.si].exercises[ALT.ei];
+  fetchAlts(ex);
 }
 
 function selAlt(i) {
@@ -1619,24 +1786,40 @@ function selAlt(i) {
 
 async function confirmAlt() {
   if (ALT.selected === null || !PROG) return;
-  const newEx = ALT.data[ALT.selected];
+  const a = ALT.data[ALT.selected];
   const si = ALT.si, ei = ALT.ei;
-  const old = PROG.sessions_data[si].exercises[ei];
 
-  // Replace exercise, keep sets_data structure
-  PROG.sessions_data[si].exercises[ei] = {
-    ...newEx,
-    sets_data: Array.from({ length: newEx.sets }, () => ({ weight:'', reps:'', done:false })),
-    completed: false
+  // Final safety check
+  if (!a || !a.name || a.name === 'undefined') {
+    toast('Données invalides, réessaie'); return;
+  }
+
+  const newEx = {
+    name:        a.name,
+    muscles:     a.muscles,
+    sets:        a.sets,
+    reps:        a.reps,
+    rep_type:    a.rep_type,
+    rest_seconds:a.rest_seconds,
+    tip:         a.tip,
+    sets_data:   Array.from({ length: a.sets }, () => ({ weight:'', reps:'', done:false })),
+    completed:   false
   };
 
+  const prevName = PROG.sessions_data[si].exercises[ei].name;
+  PROG.sessions_data[si].exercises[ei] = newEx;
   await sb.from('programs').update({ sessions_data: PROG.sessions_data }).eq('id', PROG.id);
   closeAlt();
   renderSessPane();
-  toast(`✅ ${old.name} → ${newEx.name}`);
+
+  // Undo toast
+  toast(`✅ ${prevName} → ${newEx.name} · Annuler ?`, 5000);
+  // Store for potential undo
+  ALT.origEx && (window._lastSwap = { si, ei, origEx: ALT.origEx });
+  setTimeout(() => { window._lastSwap = null; }, 6000);
 }
 
-function closeAlt() { $('alt-modal').classList.add('hidden'); ALT={ si:null, ei:null, selected:null, data:[] }; }
+function closeAlt() { $('alt-modal').classList.add('hidden'); ALT={ si:null, ei:null, selected:null, data:[], origEx:null }; }
 
 // ══════════════════════════════════════════════
 // TIMER
