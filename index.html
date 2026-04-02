@@ -273,6 +273,19 @@ textarea{resize:none}
 .alt-meta{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .swap-btn{background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:.7rem;color:var(--muted);transition:.2s;display:inline-flex;align-items:center;gap:3px}
 .swap-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* ── ACTIVITY TRACKER ── */
+.act-cat-btn{flex:1;padding:8px 4px;background:var(--bg-ele);border:1px solid var(--border2);border-radius:var(--r-xs);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);cursor:pointer;transition:.2s;text-align:center;font-family:'DM Sans',sans-serif}
+.act-cat-btn.sel{background:var(--accent3-d);color:var(--accent3);border-color:rgba(255,120,87,.3)}
+.act-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
+.act-pick{padding:10px 10px;background:var(--bg-ele);border:1px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;transition:.2s;display:flex;align-items:center;gap:8px}
+.act-pick:hover,.act-pick:active{background:var(--accent3-d);border-color:rgba(255,120,87,.3)}
+.act-pick.sel{background:var(--accent3-d);border-color:var(--accent3);outline:none}
+.act-pick-icon{font-size:1.3rem;flex-shrink:0;width:24px;text-align:center}
+.act-pick-name{font-size:.75rem;font-weight:600;line-height:1.2}
+.act-pick-met{font-size:.62rem;color:var(--muted);margin-top:1px}
+.act-log-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-ele);border-radius:var(--r-sm)}
+.act-log-icon{width:36px;height:36px;border-radius:9px;background:var(--accent3-d);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+
 /* ── BODY MAP ── */
 .body-map-wrap{flex-shrink:0;border-radius:6px;overflow:hidden}
 
@@ -291,15 +304,20 @@ textarea{resize:none}
 <div id="boot">
   <div class="boot-logo">APEX</div>
   <div class="spinner" style="margin-bottom:20px;"></div>
-  <div id="boot-changelog" style="max-width:300px;width:90%;background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:14px 16px;opacity:0;transition:opacity .6s .4s;">
-    <div style="font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">✨ Nouveautés v1.4</div>
+  <div id="boot-changelog" style="max-width:300px;width:90%;background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:14px 16px;opacity:0;transition:opacity .5s;">
+    <div style="font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">✨ Nouveautés v1.5</div>
+    <div class="cl-item">🏃 Suivi des activités physiques + calories</div>
+    <div class="cl-item">📊 Référentiel de charges par exercice</div>
     <div class="cl-item">🗑 Suppression d'exercices en séance</div>
     <div class="cl-item">🎯 Ajout d'exercices ciblés par muscle</div>
-    <div class="cl-item">📊 Référentiel de charges par exercice</div>
-    <div class="cl-item">🏆 Progression visible à chaque série</div>
-    <div class="cl-item">🔄 Meilleures alternatives (même groupe)</div>
+    <div class="cl-item">🔄 Alternatives mieux ciblées (même groupe)</div>
     <div class="cl-item">▶ Liens tuto YouTube sur chaque exercice</div>
     <div class="cl-item">🗺 Carte anatomique sur chaque exercice</div>
+    <div class="cl-item">🤖 Conseils IA sans markdown</div>
+    <div id="boot-timer-bar" style="margin-top:12px;height:3px;background:#1e1e1e;border-radius:2px;overflow:hidden;">
+      <div id="boot-timer-fill" style="height:100%;background:var(--accent);width:0%;transition:width 3s linear;border-radius:2px;"></div>
+    </div>
+    <div style="font-size:.58rem;color:var(--muted2);margin-top:6px;text-align:center;">Chargement en cours…</div>
   </div>
 </div>
 
@@ -443,6 +461,53 @@ textarea{resize:none}
         <div class="divider"></div>
         <div class="row"><span style="font-size:.77rem;color:var(--muted);">Progression</span><span id="wk-pct" style="font-size:.77rem;color:var(--accent);font-weight:700;">0%</span></div>
         <div class="pb" style="margin-top:6px;"><div class="pf" id="wk-bar" style="width:0%"></div></div>
+      </div>
+
+      <!-- ACTIVITY TRACKER -->
+      <div class="sec-title">🏃 Activité physique</div>
+      <div class="card co" style="margin-bottom:10px;">
+        <div class="row" style="margin-bottom:12px;">
+          <span class="lbl" style="margin-bottom:0;">Ajouter une activité</span>
+          <div id="act-kcal-preview" style="font-family:'Bebas Neue',cursive;font-size:1.4rem;color:var(--accent3);display:none;">~0 kcal</div>
+        </div>
+
+        <!-- Catégories -->
+        <div style="display:flex;gap:5px;margin-bottom:10px;" id="act-cats">
+          <button class="act-cat-btn sel" onclick="selActCat('cardio',this)">🏃 Cardio</button>
+          <button class="act-cat-btn" onclick="selActCat('sport',this)">⛳ Sport</button>
+          <button class="act-cat-btn" onclick="selActCat('outdoor',this)">🌿 Outdoor</button>
+          <button class="act-cat-btn" onclick="selActCat('daily',this)">🏠 Quotidien</button>
+        </div>
+
+        <!-- Grille activités -->
+        <div class="act-pick-grid" id="act-grid"></div>
+
+        <!-- Durée + bouton -->
+        <div style="display:flex;gap:8px;align-items:center;" id="act-form" style="display:none;">
+          <div style="flex:1;">
+            <label class="flabel">Durée (minutes)</label>
+            <input type="number" id="act-duration" placeholder="30" min="1" max="600" oninput="updateActCalc()">
+          </div>
+          <div style="flex:1;">
+            <label class="flabel">Intensité</label>
+            <select id="act-intensity" onchange="updateActCalc()">
+              <option value="0.85">Légère</option>
+              <option value="1" selected>Modérée</option>
+              <option value="1.2">Intense</option>
+            </select>
+          </div>
+        </div>
+        <div id="act-calc-result" style="display:none;margin-top:10px;padding:10px;background:var(--bg-ele);border-radius:var(--r-sm);font-size:.8rem;"></div>
+        <button class="btn bo bfull" style="margin-top:10px;display:none;" id="act-save-btn" onclick="saveActivity()">+ Enregistrer cette activité</button>
+      </div>
+
+      <!-- Historique activités -->
+      <div id="act-history-wrap" style="display:none;">
+        <div class="row" style="margin-bottom:8px;">
+          <span class="lbl" style="margin-bottom:0;">Activités récentes</span>
+          <span id="act-week-total" style="font-size:.72rem;color:var(--accent3);font-weight:700;"></span>
+        </div>
+        <div id="act-history-list" class="gap8"></div>
       </div>
     </div>
 
@@ -688,20 +753,47 @@ textarea{resize:none}
 // FILET DE SÉCURITÉ GLOBAL
 // Lance dès le début — indépendant de tout le reste
 // ══════════════════════════════════════════════
-setTimeout(() => {
+// Filet de sécurité global — cache le loader après 12s max
+let _bootReady = false;
+let _bootMinDone = false;
+
+function tryHideBoot() {
+  if (!_bootReady || !_bootMinDone) return;
   const boot = document.getElementById('boot');
   const auth = document.getElementById('auth-screen');
   if (boot && !boot.classList.contains('hide')) {
     boot.classList.add('hide');
     if (auth) auth.classList.remove('hidden');
   }
-}, 7000);
+}
 
-// Révèle le changelog après 500ms
+setTimeout(() => {
+  // Force hide after 12s no matter what
+  const boot = document.getElementById('boot');
+  const auth = document.getElementById('auth-screen');
+  if (boot && !boot.classList.contains('hide')) {
+    boot.classList.add('hide');
+    if (auth) auth.classList.remove('hidden');
+  }
+}, 12000);
+
+// Révèle le changelog après 300ms
 setTimeout(() => {
   const cl = document.getElementById('boot-changelog');
   if (cl) cl.style.opacity = '1';
-}, 500);
+}, 300);
+
+// Lance la barre de progression (3s minimum)
+setTimeout(() => {
+  const fill = document.getElementById('boot-timer-fill');
+  if (fill) fill.style.width = '100%';
+}, 350);
+
+// Minimum 3s d'affichage du changelog
+setTimeout(() => {
+  _bootMinDone = true;
+  tryHideBoot();
+}, 3200);
 
 // ══════════════════════════════════════════════
 // CONFIG — À remplacer
@@ -940,8 +1032,13 @@ async function boot(){
     loadTip();
     $('app-screen').classList.add('visible');
     $('app-screen').style.display='flex';
+    // Signal que l'app est prête — attend le min timer si nécessaire
+    _bootReady = true;
+    tryHideBoot();
   } catch(e) {
     console.error('APEX boot error:', e);
+    _bootReady = true;
+    tryHideBoot();
     toast('Erreur de chargement — réessaie');
   }
 }
@@ -978,7 +1075,7 @@ function renderApp(){
   $('gen-btn').disabled=false; $('sp-hint').textContent=SPLITS[n]||'';
 
   if(PROG){ renderProgUI(); renderDietUI(); }
-  renderHome(); loadMealHist();
+  renderHome(); loadMealHist(); initActTracker();
 }
 
 // ══════════════════════════════════════════════
@@ -1739,7 +1836,8 @@ async function resetHistory(){
     sb.from('meal_scans').delete().eq('user_id',USER.id),
     sb.from('chat_history').delete().eq('user_id',USER.id),
     sb.from('programs').delete().eq('user_id',USER.id),
-    sb.from('exercise_history').delete().eq('user_id',USER.id)
+    sb.from('exercise_history').delete().eq('user_id',USER.id),
+    sb.from('activity_logs').delete().eq('user_id',USER.id)
   ]);
   USER.total_sessions=0; await sb.from('profiles').update({total_sessions:0,week_number:1}).eq('id',USER.id);
   PROG=null; CHAT=[]; ACT_SESS=null; EX_HIST={};
@@ -1757,6 +1855,7 @@ async function deleteAccount(){
     sb.from('chat_history').delete().eq('user_id',USER.id),
     sb.from('programs').delete().eq('user_id',USER.id),
     sb.from('exercise_history').delete().eq('user_id',USER.id),
+    sb.from('activity_logs').delete().eq('user_id',USER.id),
     sb.from('profiles').delete().eq('id',USER.id)
   ]);
   localStorage.removeItem('apex_p'); localStorage.removeItem(`apex_str_${USER.id}`); localStorage.removeItem(`apex_last_${USER.id}`);
@@ -1919,6 +2018,190 @@ async function confirmAlt() {
 function closeAlt() { $('alt-modal').classList.add('hidden'); ALT={ si:null, ei:null, selected:null, data:[], origEx:null }; }
 
 // ══════════════════════════════════════════════
+// ACTIVITY TRACKER
+// ══════════════════════════════════════════════
+
+// MET values (Metabolic Equivalent of Task)
+// Calories = MET × poids(kg) × durée(h)
+const ACTIVITIES = {
+  cardio: [
+    { name:'Course à pied', icon:'🏃', met:9.8,  detail:'~10 km/h' },
+    { name:'Marche rapide', icon:'🚶', met:4.3,  detail:'~6 km/h' },
+    { name:'Vélo extérieur', icon:'🚲', met:8.0,  detail:'~20 km/h' },
+    { name:'Vélo elliptique', icon:'⚙️', met:6.0,  detail:'intensité modérée' },
+    { name:'Natation',       icon:'🏊', met:8.3,  detail:'crawl modéré' },
+    { name:'Corde à sauter', icon:'🪢', met:11.8, detail:'rythme soutenu' },
+    { name:'Rameur',         icon:'🚣', met:7.0,  detail:'intensité modérée' },
+    { name:'HIIT',           icon:'⚡', met:12.0, detail:'haute intensité' },
+    { name:'Stepper',        icon:'🪜', met:6.5,  detail:'machine cardio' },
+    { name:'Jogging léger',  icon:'🏃', met:6.0,  detail:'~8 km/h' },
+  ],
+  sport: [
+    { name:'Golf',           icon:'⛳', met:4.8,  detail:'avec marche' },
+    { name:'Tennis',         icon:'🎾', met:8.0,  detail:'simple' },
+    { name:'Padel',          icon:'🏓', met:7.5,  detail:'intensité modérée' },
+    { name:'Football',       icon:'⚽', met:9.0,  detail:'match' },
+    { name:'Basketball',     icon:'🏀', met:8.0,  detail:'match' },
+    { name:'Volleyball',     icon:'🏐', met:4.0,  detail:'loisir' },
+    { name:'Natation loisir',icon:'🤽', met:6.0,  detail:'détendu' },
+    { name:'Boxe',           icon:'🥊', met:10.0, detail:'entraînement' },
+    { name:'Ski alpin',      icon:'⛷️', met:6.8,  detail:'descente' },
+    { name:'Rugby',          icon:'🏉', met:8.3,  detail:'entraînement' },
+  ],
+  outdoor: [
+    { name:'Randonnée',      icon:'🥾', met:6.0,  detail:'terrain varié' },
+    { name:'Vélo de route',  icon:'🚴', met:10.0, detail:'>25 km/h' },
+    { name:'VTT',            icon:'🚵', met:8.5,  detail:'hors route' },
+    { name:'Jardinage actif',icon:'🌿', met:3.5,  detail:'creuser, planter' },
+    { name:'Bricolage',      icon:'🔨', met:3.0,  detail:'travaux manuels' },
+    { name:'Marche côtière', icon:'🏖️', met:4.0,  detail:'sable/chemin' },
+    { name:'Escalade',       icon:'🧗', met:8.0,  detail:'indoor/outdoor' },
+    { name:'Yoga extérieur', icon:'🧘', met:3.0,  detail:'hatha/vinyasa' },
+    { name:'Surf',           icon:'🏄', met:6.0,  detail:'session active' },
+    { name:'Pêche active',   icon:'🎣', met:2.5,  detail:'lancers répétés' },
+  ],
+  daily: [
+    { name:'Marche bureau',  icon:'👟', met:2.8,  detail:'déplacement bureau' },
+    { name:'Ménage actif',   icon:'🧹', met:3.5,  detail:'aspirateur, sols' },
+    { name:'Courses à pied', icon:'🛒', met:2.3,  detail:'marche shopping' },
+    { name:'Montée escaliers',icon:'🪜', met:8.8, detail:'à pied' },
+    { name:'Garde d\'enfants',icon:'👶', met:3.0, detail:'actif' },
+    { name:'Déménagement',   icon:'📦', met:6.0,  detail:'port de charges' },
+    { name:'Cuisine active', icon:'👨‍🍳', met:2.5,  detail:'debout, préparation' },
+    { name:'Promenade chien',icon:'🐕', met:3.5,  detail:'marche légère' },
+  ]
+};
+
+let ACT_SELECTED = null;
+let ACT_CAT = 'cardio';
+
+function selActCat(cat, btn) {
+  ACT_CAT = cat;
+  ACT_SELECTED = null;
+  document.querySelectorAll('.act-cat-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  renderActGrid();
+  $('act-form').style.display = 'none';
+  $('act-calc-result').style.display = 'none';
+  $('act-save-btn').style.display = 'none';
+  $('act-kcal-preview').style.display = 'none';
+}
+
+function renderActGrid() {
+  const list = ACTIVITIES[ACT_CAT] || [];
+  $('act-grid').innerHTML = list.map((a, i) => `
+    <div class="act-pick ${ACT_SELECTED?.name === a.name ? 'sel' : ''}" onclick="selectActivity(${i})">
+      <span class="act-pick-icon">${a.icon}</span>
+      <div>
+        <div class="act-pick-name">${a.name}</div>
+        <div class="act-pick-met">${a.detail}</div>
+      </div>
+    </div>`).join('');
+}
+
+function selectActivity(idx) {
+  ACT_SELECTED = ACTIVITIES[ACT_CAT][idx];
+  document.querySelectorAll('.act-pick').forEach((el, i) => el.classList.toggle('sel', i === idx));
+  $('act-form').style.display = 'flex';
+  $('act-save-btn').style.display = 'block';
+  updateActCalc();
+}
+
+function updateActCalc() {
+  if (!ACT_SELECTED) return;
+  const dur = parseFloat($('act-duration').value) || 0;
+  const intensity = parseFloat($('act-intensity').value) || 1;
+  const weight = USER?.weight || 76;
+  if (!dur) { $('act-calc-result').style.display = 'none'; $('act-kcal-preview').style.display = 'none'; return; }
+
+  const kcal = Math.round(ACT_SELECTED.met * intensity * weight * (dur / 60));
+  const km = ACT_SELECTED.name.includes('Course') ? (dur / 60 * 10).toFixed(1) :
+             ACT_SELECTED.name.includes('Vélo')   ? (dur / 60 * 20).toFixed(1) : null;
+
+  $('act-kcal-preview').textContent = `~${kcal} kcal`;
+  $('act-kcal-preview').style.display = 'block';
+
+  const intLabel = { '0.85':'légère', '1':'modérée', '1.2':'intense' }[String(parseFloat($('act-intensity').value))] || 'modérée';
+  $('act-calc-result').innerHTML = `
+    <div class="row" style="margin-bottom:4px;">
+      <span>${ACT_SELECTED.icon} <strong>${ACT_SELECTED.name}</strong> · ${dur} min · intensité ${intLabel}</span>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;">
+      <span style="color:var(--accent3);font-family:'Bebas Neue',cursive;font-size:1.5rem;">${kcal} kcal</span>
+      ${km ? `<span style="color:var(--muted);font-size:.8rem;align-self:flex-end;">≈ ${km} km estimés</span>` : ''}
+      <span style="color:var(--muted);font-size:.8rem;align-self:flex-end;">MET ${ACT_SELECTED.met} × ${weight}kg</span>
+    </div>`;
+  $('act-calc-result').style.display = 'block';
+}
+
+async function saveActivity() {
+  if (!ACT_SELECTED || !USER) return;
+  const dur = parseFloat($('act-duration').value) || 0;
+  if (!dur) { toast('Entre une durée'); return; }
+  const intensity = parseFloat($('act-intensity').value) || 1;
+  const weight = USER.weight || 76;
+  const kcal = Math.round(ACT_SELECTED.met * intensity * weight * (dur / 60));
+  const intLabel = { '0.85':'légère', '1':'modérée', '1.2':'intense' }[String(intensity)] || 'modérée';
+
+  await sb.from('activity_logs').insert([{
+    user_id:      USER.id,
+    activity_name: ACT_SELECTED.name,
+    icon:         ACT_SELECTED.icon,
+    duration_min: dur,
+    intensity:    intLabel,
+    met:          ACT_SELECTED.met,
+    kcal_burned:  kcal
+  }]);
+
+  // Reset form
+  ACT_SELECTED = null;
+  $('act-duration').value = '';
+  $('act-form').style.display = 'none';
+  $('act-calc-result').style.display = 'none';
+  $('act-save-btn').style.display = 'none';
+  $('act-kcal-preview').style.display = 'none';
+  document.querySelectorAll('.act-pick').forEach(el => el.classList.remove('sel'));
+  renderActGrid();
+  await loadActHistory();
+  toast(`✅ ${ACT_SELECTED?.name || 'Activité'} enregistrée — ${kcal} kcal`);
+}
+
+async function loadActHistory() {
+  if (!USER) return;
+  const { data } = await sb.from('activity_logs')
+    .select('*').eq('user_id', USER.id)
+    .order('logged_at', { ascending: false }).limit(10);
+  if (!data?.length) { $('act-history-wrap').style.display = 'none'; return; }
+
+  // Total cette semaine
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString();
+  const weekData = data.filter(a => a.logged_at >= weekAgo);
+  const weekKcal = weekData.reduce((s, a) => s + (a.kcal_burned||0), 0);
+  const weekMin  = weekData.reduce((s, a) => s + (a.duration_min||0), 0);
+
+  $('act-week-total').textContent = `7j : ${weekKcal} kcal · ${weekMin} min`;
+  $('act-history-list').innerHTML = data.map(a => `
+    <div class="act-log-item">
+      <div class="act-log-icon">${a.icon||'🏃'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:.83rem;">${a.activity_name}</div>
+        <div style="font-size:.68rem;color:var(--muted);">${fmtD(a.logged_at)} · ${a.duration_min} min · ${a.intensity||'modérée'}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-family:'Bebas Neue',cursive;font-size:1.2rem;color:var(--accent3);">${a.kcal_burned}</div>
+        <div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;font-weight:700;">kcal</div>
+      </div>
+    </div>`).join('');
+  $('act-history-wrap').style.display = 'block';
+}
+
+// Init activity grid on first load
+function initActTracker() {
+  renderActGrid();
+  loadActHistory();
+}
+
+// ══════════════════════════════════════════════
 // TIMER
 // ══════════════════════════════════════════════
 let TM={s:90,tot:90,run:false,iv:null};
@@ -1953,9 +2236,7 @@ function goTab(name,btn){
 // ══════════════════════════════════════════════
 async function init(){
   if (!sb) {
-    $('boot').classList.add('hide');
-    $('auth-screen').classList.remove('hidden');
-    return;
+    _bootReady = true; tryHideBoot(); return;
   }
   try {
     const p = localStorage.getItem('apex_p');
@@ -1964,7 +2245,6 @@ async function init(){
       if (data && !error) {
         USER = data;
         await boot();
-        $('boot').classList.add('hide');
         return;
       }
       localStorage.removeItem('apex_p');
@@ -1972,8 +2252,8 @@ async function init(){
   } catch(e) {
     console.error('APEX init error:', e);
   }
-  $('boot').classList.add('hide');
-  $('auth-screen').classList.remove('hidden');
+  _bootReady = true;
+  tryHideBoot();
 }
 init();
 </script>
