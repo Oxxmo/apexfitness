@@ -969,10 +969,29 @@ async function loginOrCreate(){
   const p = $('pseudo-in').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
   if(!p||p.length<2){ $('auth-err').textContent='Pseudo trop court (2 min)'; return; }
   $('auth-err').textContent='';
+
+  // Feedback visuel immédiat
+  const btn = document.querySelector('#auth-screen .btn');
+  if(btn){ btn.disabled=true; btn.textContent='Connexion…'; }
+
   const {data,error} = await sb.from('profiles').select('*').eq('pseudo',p).single();
-  if(error&&error.code!=='PGRST116'){ $('auth-err').textContent='Erreur réseau'; return; }
-  if(data){ USER=data; localStorage.setItem('apex_p',p); await boot(); }
-  else { $('auth-screen').classList.add('hidden'); $('onboard-screen').classList.remove('hidden'); localStorage.setItem('apex_pp',p); }
+
+  if(btn){ btn.disabled=false; btn.textContent='Entrer →'; }
+
+  if(error&&error.code!=='PGRST116'){ $('auth-err').textContent='Erreur réseau, réessaie'; return; }
+
+  if(data){
+    USER=data;
+    localStorage.setItem('apex_p',p);
+    // Cache l'auth AVANT de lancer boot
+    $('auth-screen').classList.add('hidden');
+    await boot();
+  } else {
+    // Nouveau pseudo → onboarding
+    $('auth-screen').classList.add('hidden');
+    $('onboard-screen').classList.remove('hidden');
+    localStorage.setItem('apex_pp',p);
+  }
 }
 
 const MORPH_HINTS = {
